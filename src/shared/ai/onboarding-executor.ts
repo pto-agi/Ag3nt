@@ -246,7 +246,6 @@ export async function executeOnboarding(input: ExecuteOnboardingInput): Promise<
     if (plan.clientSummary) {
         try {
             await addTrainerNote({
-                trainerID: trainerId,
                 clientID: clientId,
                 content: plan.clientSummary,
                 type: 'general',

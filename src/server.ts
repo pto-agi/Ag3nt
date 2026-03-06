@@ -8,6 +8,7 @@ import { logger } from './shared/logger.js';
 
 // ── Trainerize API ──
 import * as tz from './shared/integrations/trainerize-api.js';
+import { searchExerciseByName } from './shared/integrations/exercise-cache.js';
 
 // ── AI Service ──
 import * as aiTrainer from './shared/ai/ai-trainer.js';
@@ -336,6 +337,502 @@ app.post('/api/ai/execute-onboarding', async (req, res) => {
         logger.error({ error: err.message, step: 'ai-endpoint' }, 'Execute onboarding failed');
         res.status(500).json({ ok: false, error: err.message });
     }
+});
+
+// ═══════════════════════════════════════════════
+// ── Cases (Ärenden) ──
+// ═══════════════════════════════════════════════
+
+interface CaseRecord {
+    id: string;
+    text: string;
+    analysis: any;
+    status: 'pending' | 'executing' | 'completed' | 'failed' | 'rejected';
+    createdAt: string;
+    executedAt?: string;
+    executionResult?: any;
+}
+
+const cases = new Map<string, CaseRecord>();
+
+// Analyze a free-text case request
+app.post('/api/cases/analyze', async (req, res) => {
+    try {
+        const { text } = req.body;
+        if (!text || !text.trim()) {
+            return res.status(400).json({ ok: false, error: 'text is required' });
+        }
+        logger.info({ step: 'cases' }, 'Analyzing new case');
+
+        // Enrich case text with client's existing workout data so AI avoids duplicates
+        let enrichedText = text;
+        try {
+            // Try to extract client identifier from text (email or name)
+            const emailMatch = text.match(/[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}/);
+            const clientHint = emailMatch ? emailMatch[0] : '';
+            if (clientHint) {
+                const searchResult = await tz.findUser(clientHint);
+                const users = searchResult?.data?.result || searchResult?.data?.users || [];
+                if (users.length > 0) {
+                    const clientId = users[0].id;
+                    const plansRes = await tz.getTrainingPlanList(String(clientId));
+                    const plans = plansRes?.data?.plans || [];
+                    if (plans.length > 0) {
+                        const wdListRes = await tz.getWorkoutDefListForPlan(String(plans[0].id));
+                        const wdEntries = wdListRes?.data?.workouts || [];
+                        if (wdEntries.length > 0) {
+                            const allIds = wdEntries.map((w: any) => w.id);
+                            const wdRes = await tz.getWorkoutDef(allIds);
+                            const allDefs = wdRes?.data?.workoutDef || [];
+                            const workoutSummary = allDefs.map((wd: any) => {
+                                const exNames = (wd.exercises || []).map((e: any) => e.def?.name || `ID:${e.def?.id}`).join(', ');
+                                return `- ${wd.name}: [${exNames}]`;
+                            }).join('\n');
+                            enrichedText += `\n\n## Klientens nuvarande träningsprogram\n${workoutSummary}\n\nVIKTIGT: Föreslå INTE en övning som redan finns i klientens program. Välj en övning som kompletterar det befintliga upplägget.`;
+                            logger.info({ step: 'cases' }, 'Enriched case with existing workout data');
+                        }
+                    }
+
+                    // ── Load trainer notes for client context (goals, injuries, history) ──
+                    try {
+                        const notesRes = await tz.getTrainerNotes(clientId);
+                        const notes = notesRes?.data?.notes || notesRes?.data?.result || [];
+                        if (notes.length > 0) {
+                            const notesSummary = notes
+                                .slice(0, 20) // Cap at 20 most recent notes
+                                .map((n: any) => {
+                                    const date = n.createdDate || n.date || '';
+                                    const content = (n.content || '').slice(0, 500);
+                                    return `[${date}] ${content}`;
+                                })
+                                .join('\n\n');
+                            enrichedText += `\n\n## Klienthistorik (tränarnotes)\nFöljande anteckningar finns om klienten. Använd denna information för att fatta bättre beslut — t.ex. undvik övningar som belastar skadade områden, respektera klientens mål och preferenser.\n\n${notesSummary}`;
+                            logger.info({ noteCount: notes.length, step: 'cases' }, 'Enriched case with trainer notes');
+                        }
+                    } catch (noteErr: any) {
+                        logger.warn({ error: noteErr.message, step: 'cases' }, 'Could not load trainer notes');
+                    }
+                }
+            }
+        } catch (err: any) {
+            logger.warn({ error: err.message, step: 'cases' }, 'Could not enrich case with workout data');
+        }
+
+        const analysis = await aiTrainer.analyzeCaseRequest(enrichedText);
+
+        const id = `case-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        const caseRecord: CaseRecord = {
+            id,
+            text,
+            analysis,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+        };
+        cases.set(id, caseRecord);
+
+        res.json({ ok: true, data: caseRecord });
+    } catch (err: any) {
+        logger.error({ error: err.message, step: 'cases' }, 'Case analysis failed');
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// List all cases
+app.get('/api/cases', (_req, res) => {
+    const list = Array.from(cases.values()).sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    res.json({ ok: true, data: list });
+});
+
+// ── Helper functions for workout matching and saving ──
+
+function matchWorkoutByExercise(workouts: any[], exerciseName: string): any | null {
+    const nameL = exerciseName.toLowerCase();
+    const pushKeywords = ['press', 'push', 'bänk', 'bench', 'shoulder', 'axel', 'tricep', 'dip', 'fly', 'hantel'];
+    const pullKeywords = ['row', 'pull', 'curl', 'bicep', 'rygg', 'back', 'lat', 'drag'];
+    const legKeywords = ['squat', 'leg', 'ben', 'lunge', 'hip', 'glute', 'rumpa', 'calf'];
+
+    const isPush = pushKeywords.some(k => nameL.includes(k));
+    const isPull = pullKeywords.some(k => nameL.includes(k));
+    const isLeg = legKeywords.some(k => nameL.includes(k));
+
+    if (isPush) return workouts.find(w => /push|bröst|chest|överkropp.*push|axel|shoulder/i.test(w.name || ''));
+    if (isPull) return workouts.find(w => /pull|rygg|back|överkropp.*pull/i.test(w.name || ''));
+    if (isLeg) return workouts.find(w => /ben|leg|underkropp|lower/i.test(w.name || ''));
+    return null;
+}
+
+function matchCalendarItem(items: Array<{ id: number; title: string; date: string }>, exerciseName: string) {
+    const nameL = exerciseName.toLowerCase();
+    const pushKeywords = ['press', 'push', 'bänk', 'bench', 'shoulder', 'axel', 'tricep', 'dip', 'fly', 'hantel'];
+    const pullKeywords = ['row', 'pull', 'curl', 'bicep', 'rygg', 'back', 'lat', 'drag'];
+    const legKeywords = ['squat', 'leg', 'ben', 'lunge', 'hip', 'glute', 'rumpa', 'calf'];
+
+    const isPush = pushKeywords.some(k => nameL.includes(k));
+    const isPull = pullKeywords.some(k => nameL.includes(k));
+    const isLeg = legKeywords.some(k => nameL.includes(k));
+
+    if (isPush) return items.find(it => /push|bröst|chest|överkropp.*push|axel|shoulder/i.test(it.title));
+    if (isPull) return items.find(it => /pull|rygg|back|överkropp.*pull/i.test(it.title));
+    if (isLeg) return items.find(it => /ben|leg|underkropp|lower/i.test(it.title));
+    return null;
+}
+
+async function saveWorkout(workout: any, exercises: any[]) {
+    const cleanExercises = exercises.map((e: any) => ({
+        def: {
+            id: e.def.id,
+            sets: e.def.sets,
+            target: e.def.target,
+            restTime: e.def.restTime,
+            recordType: e.def.recordType || 'strength',
+            supersetType: e.def.supersetType || 'none',
+            superSetID: e.def.superSetID || 0,
+            side: e.def.side || null,
+        },
+    }));
+
+    const payload = {
+        id: workout.id,
+        name: workout.name,
+        instruction: workout.instruction,
+        type: workout.type,
+        style: workout.style,
+        exercises: cleanExercises,
+    };
+
+    logger.info({ workout: workout.name, exercises: cleanExercises.length, step: 'save-workout' },
+        'Saving workout definition');
+
+    const res = await tz.setWorkoutDef(payload);
+    if (!res.ok) throw new Error(`workoutDef/set misslyckades: ${res.error || JSON.stringify(res.raw)}`);
+}
+
+// Execute (approve) a case
+app.post('/api/cases/:id/execute', async (req, res) => {
+    try {
+        const caseRecord = cases.get(req.params.id);
+        if (!caseRecord) {
+            return res.status(404).json({ ok: false, error: 'Case not found' });
+        }
+        if (caseRecord.status !== 'pending') {
+            return res.status(400).json({ ok: false, error: `Case is already ${caseRecord.status}` });
+        }
+
+        caseRecord.status = 'executing';
+        const steps: Array<{ step: string; status: string; detail?: string }> = [];
+        const analysis = caseRecord.analysis;
+
+        // Step 1: Find the client
+        let client: any = null;
+        if (analysis.clientIdentifier) {
+            try {
+                const searchResult = await tz.findUser(analysis.clientIdentifier);
+                const users = searchResult?.data?.result || searchResult?.data?.users || [];
+                if (users.length > 0) {
+                    client = users[0];
+                    steps.push({ step: 'Hitta klient', status: 'ok', detail: `${client.firstName} ${client.lastName || ''} (ID: ${client.id})` });
+                } else {
+                    steps.push({ step: 'Hitta klient', status: 'warn', detail: `Ingen klient hittad för "${analysis.clientIdentifier}"` });
+                }
+            } catch (err: any) {
+                steps.push({ step: 'Hitta klient', status: 'error', detail: err.message });
+            }
+        }
+
+        // Step 2: Execute each AI-suggested action
+        // Buffer for new workouts — we collect exercises first, then create via API after the loop
+        // (Trainerize API requires at least 1 exercise when creating a workout)
+        const pendingWorkouts = new Map<string, { name: string; exercises: any[]; steps: Array<{ step: string; status: string; detail: string }> }>();
+        let planId: number | null = null;
+
+        if (client && analysis.actions?.length) {
+            // Pre-load planId for workout creation
+            try {
+                const plansRes = await tz.getTrainingPlanList(String(client.id));
+                const plans = plansRes?.data?.plans || [];
+                if (plans.length > 0) planId = plans[0].id;
+            } catch { }
+
+            for (const action of analysis.actions) {
+                try {
+                    // ── Create Workout (Phase 1: buffer only) ──
+                    if (action.type === 'create_workout') {
+                        const wName = action.params?.workoutName || action.description;
+                        if (!planId) {
+                            steps.push({ step: action.description, status: 'error', detail: 'Inget träningsprogram hittades' });
+                            continue;
+                        }
+                        pendingWorkouts.set(wName.toLowerCase(), { name: wName, exercises: [], steps: [] });
+                        logger.info({ workoutName: wName, step: 'execute' }, 'Buffering new workout for creation');
+                        steps.push({ step: action.description, status: 'ok', detail: `Pass "${wName}" förbereds...` });
+                        continue;
+                    }
+                    if (action.type === 'add_exercise' || action.type === 'replace_exercise' || action.type === 'remove_exercise') {
+                        const exerciseName = action.params?.replacementExercise || action.params?.exerciseName || '';
+                        const targetWorkout = action.params?.targetWorkout || '';
+
+                        // ── Check if targetWorkout matches a pending (buffered) workout ──
+                        let pendingMatch: { name: string; exercises: any[]; steps: Array<{ step: string; status: string; detail: string }> } | null = null;
+                        if (targetWorkout) {
+                            for (const [key, pw] of pendingWorkouts) {
+                                if (pw.name.toLowerCase().includes(targetWorkout.toLowerCase()) ||
+                                    targetWorkout.toLowerCase().includes(key)) {
+                                    pendingMatch = pw;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // If it's for a pending workout, buffer the exercise
+                        if (pendingMatch && action.type === 'add_exercise') {
+                            if (!exerciseName) { steps.push({ step: action.description, status: 'warn', detail: 'Inget övningsnamn angivet' }); continue; }
+                            const match = await searchExerciseByName(exerciseName);
+                            if (!match) { steps.push({ step: action.description, status: 'error', detail: `Övningen "${exerciseName}" hittades inte` }); continue; }
+
+                            const alreadyExists = pendingMatch.exercises.some((e: any) => e.def?.id === match.id);
+                            if (alreadyExists) {
+                                steps.push({ step: action.description, status: 'warn', detail: `"${match.name}" finns redan i "${pendingMatch.name}" — hoppar över` });
+                                continue;
+                            }
+
+                            const newExercise = { def: { id: match.id, sets: 3, target: '10', restTime: 90, recordType: 'strength', supersetType: 'none' } };
+                            pendingMatch.exercises.push(newExercise);
+                            pendingMatch.steps.push({ step: action.description, status: 'ok', detail: `"${match.name}" tillagd i "${pendingMatch.name}"` });
+                            steps.push({ step: action.description, status: 'ok', detail: `"${match.name}" tillagd i "${pendingMatch.name}"` });
+                            continue;
+                        }
+
+                        // ── Load ALL workout definitions from training plan ──
+                        const plansRes = await tz.getTrainingPlanList(String(client.id));
+                        const plans = plansRes?.data?.plans || [];
+                        const plan = plans[0];
+
+                        let allWorkoutDefs: any[] = [];
+
+                        if (plan) {
+                            const wdListRes = await tz.getWorkoutDefListForPlan(String(plan.id));
+                            const wdEntries = wdListRes?.data?.workouts || [];
+                            if (wdEntries.length > 0) {
+                                // Load all full workout defs at once
+                                const allIds = wdEntries.map((w: any) => w.id);
+                                const wdRes = await tz.getWorkoutDef(allIds);
+                                allWorkoutDefs = wdRes?.data?.workoutDef || [];
+                            }
+                        }
+
+                        if (!allWorkoutDefs.length) {
+                            steps.push({ step: action.description, status: 'warn', detail: 'Kunde inte hitta något pass i träningsprogrammet' });
+                            continue;
+                        }
+
+                        // Pick the best workout: AI-suggested first, then smart match
+                        let workout: any = null;
+                        if (targetWorkout) {
+                            workout = allWorkoutDefs.find((w: any) => w.name?.toLowerCase().includes(targetWorkout.toLowerCase())) || allWorkoutDefs[0];
+                        } else {
+                            workout = matchWorkoutByExercise(allWorkoutDefs, exerciseName) || allWorkoutDefs[0];
+                        }
+
+                        let exercises = workout.exercises || [];
+                        let workoutName = workout.name || 'passet';
+
+                        // ── Execute the action ──
+                        if (action.type === 'add_exercise') {
+                            if (!exerciseName) { steps.push({ step: action.description, status: 'warn', detail: 'Inget övningsnamn angivet' }); continue; }
+                            const match = await searchExerciseByName(exerciseName);
+                            if (!match) { steps.push({ step: action.description, status: 'error', detail: `Övningen "${exerciseName}" hittades inte` }); continue; }
+
+                            // ── Duplicate check: skip if exercise already exists in workout ──
+                            const alreadyExists = exercises.some((e: any) => e.def?.id === match.id);
+                            if (alreadyExists) {
+                                steps.push({ step: action.description, status: 'warn', detail: `"${match.name}" finns redan i "${workoutName}" — hoppar över` });
+                                continue;
+                            }
+
+                            const newExercise = { def: { id: match.id, sets: 3, target: '10', restTime: 90, recordType: 'strength', supersetType: 'none' } };
+                            // Insert at AI-suggested optimal position (1-indexed), or append
+                            const pos = action.params?.optimalPosition;
+                            if (pos && pos >= 1 && pos <= exercises.length) {
+                                exercises.splice(pos - 1, 0, newExercise);
+                            } else {
+                                exercises.push(newExercise);
+                            }
+                            await saveWorkout(workout, exercises);
+                            const posLabel = pos ? ` (position ${pos})` : '';
+                            steps.push({ step: action.description, status: 'ok', detail: `"${match.name}" tillagd i "${workoutName}"${posLabel}` });
+
+                        } else if (action.type === 'replace_exercise') {
+                            const oldName = action.params?.exerciseName;
+                            const newName = action.params?.replacementExercise;
+                            if (!oldName || !newName) { steps.push({ step: action.description, status: 'warn', detail: 'Saknar övningsnamn' }); continue; }
+                            const newMatch = await searchExerciseByName(newName);
+                            if (!newMatch) { steps.push({ step: action.description, status: 'error', detail: `"${newName}" hittades inte` }); continue; }
+                            const oldMatch = await searchExerciseByName(oldName);
+                            let idx = exercises.findIndex((e: any) => oldMatch && e.def?.id === oldMatch.id);
+
+                            // If not found in AI-suggested workout, search ALL other workouts
+                            if (idx < 0 && oldMatch) {
+                                for (const wd of allWorkoutDefs) {
+                                    if (wd.id === workout.id) continue;
+                                    const wdExercises = wd.exercises || [];
+                                    const wdIdx = wdExercises.findIndex((e: any) => e.def?.id === oldMatch.id);
+                                    if (wdIdx >= 0) {
+                                        workout = wd;
+                                        exercises = wdExercises;
+                                        workoutName = wd.name || 'passet';
+                                        idx = wdIdx;
+                                        logger.info({ foundIn: workoutName, step: 'execute' }, `Exercise found in different workout`);
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (idx >= 0) {
+                                exercises[idx].def.id = newMatch.id;
+                                await saveWorkout(workout, exercises);
+                                steps.push({ step: action.description, status: 'ok', detail: `Bytte "${oldMatch?.name}" → "${newMatch.name}" i "${workoutName}"` });
+                            } else {
+                                steps.push({ step: action.description, status: 'warn', detail: `"${oldName}" hittades inte i något pass` });
+                            }
+
+                        } else if (action.type === 'remove_exercise') {
+                            const removeName = action.params?.exerciseName;
+                            if (!removeName) { steps.push({ step: action.description, status: 'warn', detail: 'Inget övningsnamn angivet' }); continue; }
+                            const removeMatch = await searchExerciseByName(removeName);
+                            let idx = exercises.findIndex((e: any) => removeMatch && e.def?.id === removeMatch.id);
+
+                            // If not found in AI-suggested workout, search ALL other workouts
+                            if (idx < 0 && removeMatch) {
+                                for (const wd of allWorkoutDefs) {
+                                    if (wd.id === workout.id) continue;
+                                    const wdExercises = wd.exercises || [];
+                                    const wdIdx = wdExercises.findIndex((e: any) => e.def?.id === removeMatch.id);
+                                    if (wdIdx >= 0) {
+                                        workout = wd;
+                                        exercises = wdExercises;
+                                        workoutName = wd.name || 'passet';
+                                        idx = wdIdx;
+                                        logger.info({ foundIn: workoutName, step: 'execute' }, `Exercise found in different workout`);
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (idx >= 0) {
+                                exercises.splice(idx, 1);
+                                await saveWorkout(workout, exercises);
+                                steps.push({ step: action.description, status: 'ok', detail: `"${removeMatch?.name}" borttagen från "${workoutName}"` });
+                            } else {
+                                steps.push({ step: action.description, status: 'warn', detail: `"${removeName}" hittades inte i något pass` });
+                            }
+                        }
+
+                    } else {
+                        // Non-exercise actions (add_note, send_message, etc.) — handled below or log as info
+                        steps.push({ step: action.description, status: 'ok', detail: 'Åtgärd noterad' });
+                    }
+                } catch (err: any) {
+                    steps.push({ step: action.description, status: 'error', detail: err.message });
+                }
+            }
+        }
+
+        // Phase 2: Create all pending workouts via API (with their collected exercises)
+        if (planId && pendingWorkouts.size > 0) {
+            for (const [key, pw] of pendingWorkouts) {
+                if (pw.exercises.length === 0) {
+                    logger.warn({ workoutName: pw.name, step: 'execute' }, 'Skipping workout creation — no exercises collected');
+                    // Update the pending step
+                    const idx = steps.findIndex(s => s.detail?.includes(pw.name) && s.detail?.includes('förbereds'));
+                    if (idx >= 0) steps[idx] = { step: steps[idx].step, status: 'warn', detail: `Pass "${pw.name}" hade inga övningar — hoppades över` };
+                    continue;
+                }
+                try {
+                    const addRes = await tz.addWorkoutDef({
+                        type: 'trainingPlan',
+                        trainingPlanID: planId,
+                        workoutDef: {
+                            name: pw.name,
+                            type: 'workoutRegular',
+                            exercises: pw.exercises.map(e => ({
+                                def: {
+                                    id: e.def.id,
+                                    sets: e.def.sets || 3,
+                                    target: e.def.target || '10',
+                                    restTime: e.def.restTime || 90,
+                                    recordType: e.def.recordType || 'strength',
+                                    supersetType: e.def.supersetType || 'none',
+                                },
+                            })),
+                        },
+                    });
+                    logger.info({ workoutName: pw.name, exerciseCount: pw.exercises.length, response: JSON.stringify(addRes?.data).slice(0, 300), step: 'execute' }, 'Created workout via API');
+                    // Update the pending step
+                    const idx = steps.findIndex(s => s.detail?.includes(pw.name) && s.detail?.includes('förbereds'));
+                    if (idx >= 0) steps[idx] = { step: steps[idx].step, status: 'ok', detail: `Pass "${pw.name}" skapat med ${pw.exercises.length} övningar ✓` };
+                } catch (err: any) {
+                    logger.error({ workoutName: pw.name, error: err.message, step: 'execute' }, 'Failed to create workout');
+                    const idx = steps.findIndex(s => s.detail?.includes(pw.name) && s.detail?.includes('förbereds'));
+                    if (idx >= 0) steps[idx] = { step: steps[idx].step, status: 'error', detail: `Kunde inte skapa "${pw.name}": ${err.message}` };
+                }
+            }
+        }
+
+        // Step 2: Add trainer note documenting the change
+        if (client) {
+            try {
+                const noteContent = `[Ärende] ${analysis.summary}\n\nResonemang: ${analysis.reasoning}\n\nÅtgärder: ${analysis.actions?.map((a: any) => a.description).join(', ') || 'Inga'}`;
+                await tz.addTrainerNote({
+                    clientID: client.id,
+                    content: noteContent,
+                    type: 'general',
+                });
+                steps.push({ step: 'Tränarnote', status: 'ok', detail: 'Anteckning tillagd i klientprofilen' });
+            } catch (err: any) {
+                steps.push({ step: 'Tränarnote', status: 'error', detail: err.message });
+            }
+        }
+
+        // Step 3: Send confirmation message to client
+        if (client && analysis.clientMessage) {
+            try {
+                await tz.sendMessage({
+                    senderID: client.trainerID || 4452827,
+                    recipients: [client.id],
+                    subject: 'Uppdatering av ditt träningsprogram',
+                    body: analysis.clientMessage,
+                });
+                steps.push({ step: 'Klientmeddelande', status: 'ok', detail: 'Bekräftelsemeddelande skickat' });
+            } catch (err: any) {
+                steps.push({ step: 'Klientmeddelande', status: 'error', detail: err.message });
+            }
+        }
+
+        const hasErrors = steps.some(s => s.status === 'error');
+        caseRecord.status = hasErrors ? 'failed' : 'completed';
+        caseRecord.executedAt = new Date().toISOString();
+        caseRecord.executionResult = { steps, ok: !hasErrors };
+
+        logger.info({ caseId: caseRecord.id, status: caseRecord.status, step: 'cases' }, 'Case execution complete');
+        res.json({ ok: true, data: caseRecord });
+    } catch (err: any) {
+        const caseRecord = cases.get(req.params.id);
+        if (caseRecord) caseRecord.status = 'failed';
+        logger.error({ error: err.message, step: 'cases' }, 'Case execution failed');
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// Reject a case
+app.post('/api/cases/:id/reject', (req, res) => {
+    const caseRecord = cases.get(req.params.id);
+    if (!caseRecord) {
+        return res.status(404).json({ ok: false, error: 'Case not found' });
+    }
+    caseRecord.status = 'rejected';
+    res.json({ ok: true, data: caseRecord });
 });
 
 // Fallback: serve dashboard

@@ -189,7 +189,7 @@ export async function getTrainingPlanList(userId: string) {
 }
 
 export async function getWorkoutDefListForPlan(trainingPlanId: string) {
-    return apiCall('/trainingPlan/getWorkoutDefList', { trainingPlanID: trainingPlanId });
+    return apiCall('/trainingPlan/getWorkoutDefList', { planID: trainingPlanId, start: 0, count: 50 });
 }
 
 /**
@@ -356,23 +356,38 @@ export async function getUserCompliance(userId: string, startDate: string, endDa
 // ── Trainer Note endpoints ──
 
 export async function addTrainerNote(options: {
-    trainerID: number;
     clientID: number;
     content: string;
     type?: 'general' | 'workout';
+    attachTo?: number;  // dailyWorkoutID — only required for type 'workout'
     injury?: boolean;
 }) {
-    return apiCall('/trainerNote/add', {
-        userID: options.trainerID,
-        attachTo: options.clientID,
+    const body: Record<string, unknown> = {
+        userID: options.clientID,       // API expects client's ID here
         content: options.content,
         type: options.type || 'general',
         injury: options.injury || false,
-    });
+    };
+    // attachTo is only for type 'workout' — it's the dailyWorkoutID
+    if (options.attachTo) {
+        body.attachTo = options.attachTo;
+    }
+    return apiCall('/trainerNote/add', body);
 }
 
-export async function getTrainerNotes(userId: number) {
-    return apiCall('/trainerNote/getList', { userID: userId });
+export async function getTrainerNotes(clientId: number, options?: {
+    start?: number;
+    count?: number;
+    filterType?: 'general' | 'pinned' | 'workout';
+    searchTerm?: string;
+}) {
+    return apiCall('/trainerNote/getList', {
+        userID: clientId,
+        start: options?.start ?? 0,
+        count: options?.count ?? 50,
+        ...(options?.filterType && { filterType: options.filterType }),
+        ...(options?.searchTerm && { searchTerm: options.searchTerm }),
+    });
 }
 
 // ── User Tags ──

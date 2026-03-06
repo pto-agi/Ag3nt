@@ -615,6 +615,234 @@
             color: var(--text-muted);
             font-size: 11px;
         }
+
+        /* ─── Cases (Ärenden) ─── */
+        .case-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .case-card:hover {
+            border-color: rgba(88, 166, 255, 0.3);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .case-card.expanded {
+            border-color: var(--accent);
+            box-shadow: var(--glow);
+        }
+
+        .case-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .case-summary {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.4;
+            flex: 1;
+        }
+
+        .case-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .case-badge {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .case-badge.pending {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+
+        .case-badge.completed {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .case-badge.failed {
+            background: var(--error-bg);
+            color: var(--error);
+        }
+
+        .case-badge.rejected {
+            background: var(--bg-input);
+            color: var(--text-muted);
+        }
+
+        .case-badge.executing {
+            background: var(--running-bg);
+            color: var(--running);
+        }
+
+        .case-detail {
+            display: none;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            animation: slideIn 0.3s ease;
+        }
+
+        .case-card.expanded .case-detail {
+            display: block;
+        }
+
+        .case-section {
+            margin-bottom: 16px;
+        }
+
+        .case-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .case-reasoning {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            background: var(--bg-input);
+            border-radius: var(--radius-sm);
+            padding: 14px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .case-action-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 14px;
+            background: var(--bg-input);
+            border-radius: var(--radius-sm);
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .case-action-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .case-action-text {
+            flex: 1;
+        }
+
+        .case-action-text strong {
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .case-action-text small {
+            color: var(--text-muted);
+        }
+
+        .case-message-preview {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-style: italic;
+            position: relative;
+        }
+
+        .case-message-preview::before {
+            content: '"';
+            font-size: 28px;
+            color: var(--accent);
+            position: absolute;
+            top: 4px;
+            left: 10px;
+            opacity: 0.3;
+        }
+
+        .case-actions-bar {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .case-submit-area {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .case-submit-area h3 {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .case-submit-area p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .case-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .case-textarea:focus {
+            border-color: var(--border-focus);
+            box-shadow: var(--glow);
+        }
+
+        .case-textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        .case-original {
+            font-size: 12px;
+            color: var(--text-muted);
+            background: var(--bg-secondary);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
     </style>
 </head>
 
@@ -634,6 +862,7 @@
         <button class="nav-tab active" onclick="switchTab('clients')">👥 Klienter</button>
         <button class="nav-tab" onclick="switchTab('tools')">🔧 API Verktyg</button>
         <button class="nav-tab" onclick="switchTab('messages')">💬 Meddelanden</button>
+        <button class="nav-tab" onclick="switchTab('cases')">📋 Ärenden</button>
         <button class="nav-tab" onclick="switchTab('runs')">📊 Körningar</button>
         <button class="nav-tab" onclick="switchTab('ai')">🧠 AI Agent</button>
     </nav>
@@ -1052,6 +1281,32 @@
             </div>
         </div>
 
+        <!-- ═══════ TAB: Cases (Ärenden) ═══════ -->
+        <div id="tab-cases" class="tab-content">
+            <div class="case-submit-area">
+                <h3>📋 Nytt ärende</h3>
+                <p>Beskriv ärendet i fritext — ange klientens namn/e-post och vad som behöver göras. AI analyserar och föreslår en åtgärdsplan.</p>
+                <textarea class="case-textarea" id="caseInput" placeholder="Exempel: Klient anna@example.com har ont i axlarna av bänkpress. Hon vill fortsätta träna bröst men behöver en övning som är snällare mot axlarna."></textarea>
+                <div style="display:flex;gap:10px;margin-top:14px;align-items:center">
+                    <button class="btn btn-primary" onclick="submitCase()" id="btnSubmitCase" style="min-width:200px">
+                        <span class="spinner"></span> 🧠 Analysera ärende
+                    </button>
+                    <span id="caseSubmitStatus" style="font-size:12px;color:var(--text-muted)"></span>
+                </div>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+                <h3 style="font-size:15px;font-weight:600">📋 Ärenden</h3>
+                <button class="btn btn-outline" onclick="loadCases()" style="font-size:12px">🔄 Uppdatera</button>
+            </div>
+            <div id="casesList">
+                <div class="empty-state">
+                    <div class="icon">📋</div>
+                    <p>Inga ärenden ännu. Skapa ditt första ärende ovan.</p>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <footer class="footer">AntiGravity Agent v3.0 · Direct API Dashboard</footer>
@@ -1069,6 +1324,7 @@
             document.getElementById(`tab-${tab}`).classList.add('active');
             event.target.classList.add('active');
             if (tab === 'tools') loadPrograms();
+            if (tab === 'cases') loadCases();
             if (tab === 'ai' && selectedClient) {
                 document.getElementById('aiFirstName').value = selectedClient.firstName || '';
                 document.getElementById('aiLastName').value = selectedClient.lastName || '';
@@ -1733,6 +1989,169 @@
                 el.textContent = data.data.response;
             } catch (err) {
                 showResult('freeformResult', `Fel: ${err.message}`, true);
+            }
+        }
+
+        // ─── Cases (Ärenden) ───
+        const actionIcons = {
+            replace_exercise: '🔄',
+            add_exercise: '➕',
+            remove_exercise: '🗑️',
+            modify_program: '📋',
+            add_note: '📝',
+            send_message: '💬',
+            other: '⚡',
+        };
+
+        const statusLabels = {
+            pending: '⏳ Väntande',
+            executing: '🔄 Utförs...',
+            completed: '✅ Utförd',
+            failed: '❌ Misslyckad',
+            rejected: '🚫 Avvisad',
+        };
+
+        async function submitCase() {
+            const text = document.getElementById('caseInput').value.trim();
+            if (!text) return;
+
+            const btn = document.getElementById('btnSubmitCase');
+            const statusEl = document.getElementById('caseSubmitStatus');
+            setLoading(btn, true);
+            statusEl.textContent = '🧠 AI analyserar ärendet...';
+
+            try {
+                const data = await apiPost('/api/cases/analyze', { text });
+                if (!data.ok) throw new Error(data.error);
+                statusEl.textContent = '✅ Ärende skapat!';
+                document.getElementById('caseInput').value = '';
+                setTimeout(() => { statusEl.textContent = ''; }, 3000);
+                loadCases();
+            } catch (err) {
+                statusEl.textContent = `❌ ${err.message}`;
+            }
+            setLoading(btn, false);
+        }
+
+        async function loadCases() {
+            const el = document.getElementById('casesList');
+            try {
+                const data = await apiGet('/api/cases');
+                const list = data?.data || [];
+                if (!list.length) {
+                    el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>Inga ärenden ännu. Skapa ditt första ärende ovan.</p></div>';
+                    return;
+                }
+                el.innerHTML = list.map(renderCase).join('');
+            } catch (err) {
+                el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(err.message)}</p></div>`;
+            }
+        }
+
+        function renderCase(c) {
+            const a = c.analysis || {};
+            const badge = c.status || 'pending';
+            const time = c.createdAt ? new Date(c.createdAt).toLocaleString('sv-SE', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : '–';
+
+            let actionsHtml = '';
+            if (a.actions?.length) {
+                actionsHtml = a.actions.map(act => {
+                    const icon = actionIcons[act.type] || '⚡';
+                    let details = '';
+                    if (act.params?.exerciseName) details += `Nuvarande: ${esc(act.params.exerciseName)}. `;
+                    if (act.params?.replacementExercise) details += `Ersättning: ${esc(act.params.replacementExercise)}. `;
+                    if (act.params?.alternativeExercises?.length) details += `Alternativ: ${act.params.alternativeExercises.map(esc).join(', ')}. `;
+                    if (act.params?.reason) details += `${esc(act.params.reason)}`;
+                    return `<div class="case-action-item">
+                        <span class="case-action-icon">${icon}</span>
+                        <div class="case-action-text">
+                            <strong>${esc(act.description)}</strong>
+                            ${details ? `<small>${details}</small>` : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            let executionHtml = '';
+            if (c.executionResult?.steps?.length) {
+                executionHtml = `<div class="case-section">
+                    <div class="case-section-title">📊 Exekveringsresultat</div>
+                    ${c.executionResult.steps.map(s => {
+                        const icon = s.status === 'ok' ? '✅' : s.status === 'warn' ? '⚠️' : '❌';
+                        return `<div class="case-action-item">
+                            <span class="case-action-icon">${icon}</span>
+                            <div class="case-action-text">
+                                <strong>${esc(s.step)}</strong>
+                                <small>${esc(s.detail || '')}</small>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>`;
+            }
+
+            const buttonsHtml = c.status === 'pending'
+                ? `<div class="case-actions-bar">
+                    <button class="btn btn-success" onclick="event.stopPropagation(); executeCase('${c.id}')" style="flex:1">
+                        <span class="spinner"></span> ✅ Godkänn & Utför
+                    </button>
+                    <button class="btn btn-outline" onclick="event.stopPropagation(); rejectCase('${c.id}')">
+                        🚫 Avvisa
+                    </button>
+                </div>`
+                : '';
+
+            return `<div class="case-card" onclick="toggleCase(this)">
+                <div class="case-header">
+                    <div>
+                        <div class="case-summary">${esc(a.summary || c.text?.slice(0, 100) || '–')}</div>
+                        <div class="case-meta">🕐 ${time} · 👤 ${esc(a.clientIdentifier || '–')}</div>
+                    </div>
+                    <span class="case-badge ${badge}">${statusLabels[badge] || badge}</span>
+                </div>
+                <div class="case-detail">
+                    <div class="case-section">
+                        <div class="case-section-title">📄 Originaltext</div>
+                        <div class="case-original">${esc(c.text)}</div>
+                    </div>
+                    ${a.reasoning ? `<div class="case-section">
+                        <div class="case-section-title">🧠 AI-resonemang</div>
+                        <div class="case-reasoning">${esc(a.reasoning)}</div>
+                    </div>` : ''}
+                    ${actionsHtml ? `<div class="case-section">
+                        <div class="case-section-title">⚡ Föreslagna åtgärder</div>
+                        ${actionsHtml}
+                    </div>` : ''}
+                    ${a.clientMessage ? `<div class="case-section">
+                        <div class="case-section-title">💬 Meddelande till klient</div>
+                        <div class="case-message-preview">${esc(a.clientMessage)}</div>
+                    </div>` : ''}
+                    ${executionHtml}
+                    ${buttonsHtml}
+                </div>
+            </div>`;
+        }
+
+        function toggleCase(el) {
+            el.classList.toggle('expanded');
+        }
+
+        async function executeCase(id) {
+            if (!confirm('Vill du godkänna och utföra detta ärende?')) return;
+            try {
+                await apiPost(`/api/cases/${id}/execute`, {});
+                loadCases();
+            } catch (err) {
+                alert('Fel: ' + err.message);
+            }
+        }
+
+        async function rejectCase(id) {
+            if (!confirm('Vill du avvisa detta ärende?')) return;
+            try {
+                await apiPost(`/api/cases/${id}/reject`, {});
+                loadCases();
+            } catch (err) {
+                alert('Fel: ' + err.message);
             }
         }
     </script>

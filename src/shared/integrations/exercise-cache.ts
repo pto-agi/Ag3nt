@@ -57,10 +57,141 @@ async function loadExerciseLibrary(): Promise<CachedExercise[]> {
 
 /** Extract significant words (skip common noise) */
 function extractWords(s: string): string[] {
-    const noise = new Set(['the', 'a', 'an', 'to', 'with', 'and', 'on', 'in', 'up', '-']);
+    const noise = new Set(['the', 'a', 'an', 'to', 'with', 'and', 'on', 'in', 'up', '-', 'med', 'på', 'och', 'för', 'en', 'ett']);
     return s.split(/[\s\-\/]+/)
-        .map(w => w.replace(/[^a-z0-9]/g, ''))
+        .map(w => w.replace(/[^a-zåäö0-9]/g, ''))
         .filter(w => w.length > 1 && !noise.has(w));
+}
+
+/**
+ * Swedish → English exercise name aliases.
+ * Maps common Swedish exercise names/keywords to their English equivalents.
+ */
+const SWEDISH_ALIASES: Record<string, string> = {
+    // Full exercise names
+    'bänkpress': 'bench press',
+    'bänkpress med stång': 'barbell bench press',
+    'bänkpress med hantlar': 'dumbbell bench press',
+    'hantelpress': 'dumbbell bench press',
+    'marklyft': 'deadlift',
+    'marklyft med stång': 'barbell deadlift',
+    'rumänsk marklyft': 'romanian deadlift',
+    'knäböj': 'squat',
+    'knäböj med stång': 'barbell squat',
+    'benböj': 'squat',
+    'frontböj': 'front squat',
+    'axelpress': 'shoulder press',
+    'militärpress': 'overhead press',
+    'latsdrag': 'lat pulldown',
+    'rodd': 'row',
+    'skivstångsrodd': 'barbell row',
+    'hantelrodd': 'dumbbell row',
+    'kabelrodd': 'cable row',
+    'sittande rodd': 'seated cable row',
+    'bicepscurl': 'bicep curl',
+    'biceps curl': 'bicep curl',
+    'hantelcurl': 'dumbbell curl',
+    'stångcurl': 'barbell curl',
+    'tricepspress': 'tricep extension',
+    'triceps pressdown': 'tricep pushdown',
+    'tricep pushdown': 'tricep pushdown',
+    'benspark': 'leg extension',
+    'benpress': 'leg press',
+    'bencurl': 'leg curl',
+    'benböjning': 'leg curl',
+    'sidohöjning': 'lateral raise',
+    'sidhöjning': 'lateral raise',
+    'framhöjning': 'front raise',
+    'utfall': 'lunge',
+    'utfallssteg': 'lunge',
+    'höftlyft': 'hip thrust',
+    'plankan': 'plank',
+    'plankan med arm': 'plank',
+    'situps': 'sit up',
+    'sit ups': 'sit up',
+    'magövning': 'abs',
+    'dips': 'dip',
+    'chins': 'chin up',
+    'chinups': 'chin up',
+    'pullups': 'pull up',
+    'pull ups': 'pull up',
+    'vadpress': 'calf raise',
+    'axelrotation': 'external rotation',
+    'utåtrotation': 'external rotation',
+    'inåtrotation': 'internal rotation',
+    'brygga': 'glute bridge',
+    'rygglyft': 'back extension',
+    'trycka': 'press',
+    'face pull': 'face pull',
+    'cable face pull': 'cable face pull',
+    'flyes': 'fly',
+    'bröstflyes': 'chest fly',
+    'omvänd flyes': 'reverse fly',
+    'bakre axlar': 'rear delt',
+    'bulgariska utfall': 'bulgarian split squat',
+    'bulgarsplit': 'bulgarian split squat',
+};
+
+/**
+ * Swedish keyword → English keyword mapping for partial matches.
+ */
+const SWEDISH_KEYWORDS: Record<string, string> = {
+    'hantel': 'dumbbell',
+    'hantlar': 'dumbbell',
+    'stång': 'barbell',
+    'skivstång': 'barbell',
+    'kabel': 'cable',
+    'maskin': 'machine',
+    'sittande': 'seated',
+    'stående': 'standing',
+    'liggande': 'lying',
+    'bröst': 'chest',
+    'rygg': 'back',
+    'axlar': 'shoulder',
+    'axel': 'shoulder',
+    'ben': 'leg',
+    'biceps': 'bicep',
+    'triceps': 'tricep',
+    'mage': 'abs',
+    'core': 'core',
+    'rumpa': 'glute',
+    'vader': 'calf',
+    'press': 'press',
+    'curl': 'curl',
+    'drag': 'pull',
+    'lyft': 'raise',
+    'höjning': 'raise',
+    'böj': 'squat',
+    'rotation': 'rotation',
+};
+
+/**
+ * Translate a Swedish exercise name/query to English.
+ * Tries full phrase match first, then word-by-word keyword replacement.
+ */
+function translateToEnglish(query: string): string {
+    const q = query.toLowerCase().trim();
+
+    // 1. Full phrase match
+    if (SWEDISH_ALIASES[q]) return SWEDISH_ALIASES[q];
+
+    // 2. Partial phrase match (check if query contains a known alias)
+    for (const [sv, en] of Object.entries(SWEDISH_ALIASES)) {
+        if (q.includes(sv)) return q.replace(sv, en);
+    }
+
+    // 3. Word-by-word keyword replacement
+    const words = q.split(/\s+/);
+    let translated = false;
+    const result = words.map(w => {
+        if (SWEDISH_KEYWORDS[w]) {
+            translated = true;
+            return SWEDISH_KEYWORDS[w];
+        }
+        return w;
+    });
+
+    return translated ? result.join(' ') : q;
 }
 
 /** Normalize common exercise name variations */
@@ -150,24 +281,39 @@ function matchScore(queryWords: string[], queryNorm: string, ex: CachedExercise)
 
 /**
  * Search for an exercise by name. Returns the best match or null.
- * Uses multi-strategy matching with scoring.
+ * Handles Swedish names via translation, then multi-strategy fuzzy matching.
  */
 export async function searchExerciseByName(name: string): Promise<{ id: number; name: string; score: number } | null> {
     const cache = await getCache();
-    const queryNorm = normalize(name);
-    const queryWords = extractWords(queryNorm);
 
-    if (queryWords.length === 0) return null;
+    // Translate Swedish → English if applicable
+    const translated = translateToEnglish(name);
+    const wasTranslated = translated.toLowerCase() !== name.toLowerCase();
+    if (wasTranslated) {
+        logger.info({ original: name, translated, step: 'exercise-cache' }, 'Translated exercise name');
+    }
+
+    // Try translated name first (higher priority), then original
+    const queriesToTry = wasTranslated ? [translated, name] : [name];
 
     let bestScore = 0;
     let bestMatch: CachedExercise | null = null;
 
-    for (const ex of cache) {
-        const score = matchScore(queryWords, queryNorm, ex);
-        if (score > bestScore) {
-            bestScore = score;
-            bestMatch = ex;
+    for (const query of queriesToTry) {
+        const queryNorm = normalize(query);
+        const queryWords = extractWords(queryNorm);
+        if (queryWords.length === 0) continue;
+
+        for (const ex of cache) {
+            const score = matchScore(queryWords, queryNorm, ex);
+            if (score > bestScore) {
+                bestScore = score;
+                bestMatch = ex;
+            }
         }
+
+        // If we got a good match from translated query, don't try original
+        if (bestScore >= 200) break;
     }
 
     // Minimum threshold to accept a match

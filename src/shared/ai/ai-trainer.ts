@@ -1,13 +1,15 @@
 /**
  * AI Trainer Service
  *
- * Central service that uses Gemini to make training-related decisions.
- * Each method handles a specific task type with appropriate prompts.
+ * Central service for AI-powered training decisions.
+ * Uses OpenAI (GPT-5.4) for case analysis and Gemini for other features.
  */
 import { askGeminiJSON, askGemini } from '../integrations/gemini.js';
+import { askOpenAIJSON } from '../integrations/openai.js';
 import { ONBOARDING_SYSTEM_PROMPT, ONBOARDING_JSON_SCHEMA, EXERCISE_LIST_INSTRUCTION } from './prompts/onboarding.js';
 import { EXERCISE_REPLACEMENT_SYSTEM_PROMPT } from './prompts/exercise.js';
 import { MESSAGE_REPLY_SYSTEM_PROMPT } from './prompts/messages.js';
+import { CASE_ANALYZER_SYSTEM_PROMPT } from './prompts/arenden.js';
 import { getAllExerciseNames } from '../integrations/exercise-cache.js';
 import { logger } from '../logger.js';
 
@@ -71,6 +73,32 @@ export interface MessageReplyResult {
     category: string;
     suggestedActions: string[];
     tone: string;
+}
+
+export interface CaseActionParams {
+    exerciseName?: string;
+    replacementExercise?: string;
+    targetWorkout?: string;
+    workoutName?: string;
+    optimalPosition?: number;
+    alternativeExercises?: string[];
+    noteContent?: string;
+    messageContent?: string;
+    reason?: string;
+}
+
+export interface CaseAction {
+    type: 'replace_exercise' | 'add_exercise' | 'remove_exercise' | 'create_workout' | 'modify_program' | 'add_note' | 'send_message' | 'other';
+    description: string;
+    params: CaseActionParams;
+}
+
+export interface CaseAnalysisResult {
+    clientIdentifier: string;
+    summary: string;
+    reasoning: string;
+    actions: CaseAction[];
+    clientMessage: string;
 }
 
 // ── Service Methods ──
@@ -176,6 +204,39 @@ export async function composeMessageReply(context: {
 export async function freeformQuery(prompt: string): Promise<string> {
     const { TRAINER_BASE_PROMPT } = await import('./prompts/base.js');
     return askGemini(TRAINER_BASE_PROMPT, prompt, { temperature: 0.7 });
+}
+
+/**
+ * Analyze a free-text case request and produce a structured action plan.
+ */
+export async function analyzeCaseRequest(caseText: string): Promise<CaseAnalysisResult> {
+    logger.info({ step: 'ai-trainer' }, 'Analyzing case request');
+
+    // Load exercise library for context
+    let exerciseContext = '';
+    try {
+        const exerciseNames = await getAllExerciseNames();
+        exerciseContext = '\n\nTillgängliga övningar i systemet (använd dessa namn exakt om möjligt):\n' + exerciseNames.join(', ');
+        logger.info({ exerciseCount: exerciseNames.length, step: 'ai-trainer' }, 'Exercise library loaded for case analysis');
+    } catch {
+        logger.warn({ step: 'ai-trainer' }, 'Could not load exercise library for case analysis');
+    }
+
+    const systemPrompt = CASE_ANALYZER_SYSTEM_PROMPT + exerciseContext;
+
+    const result = await askOpenAIJSON<CaseAnalysisResult>(
+        systemPrompt,
+        caseText,
+        { reasoningEffort: 'medium' },
+    );
+
+    logger.info({
+        client: result.clientIdentifier,
+        actions: result.actions?.length,
+        step: 'ai-trainer',
+    }, 'Case analysis complete');
+
+    return result;
 }
 
 // ── Helpers ──
