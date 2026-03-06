@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.local
+tmp/
+runs/
+.DS_Store
+*.log
+*.png
+*.html
+!dashboard/**/*.html
+supabase/.temp/

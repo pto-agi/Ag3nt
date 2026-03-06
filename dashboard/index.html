@@ -1,0 +1,1741 @@
+<!DOCTYPE html>
+<html lang="sv">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AntiGravity Agent – Dashboard</title>
+    <meta name="description" content="Trainerize API Dashboard — Direct API testing and client management">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-card: #1c2128;
+            --bg-input: #21262d;
+            --border: #30363d;
+            --border-focus: #58a6ff;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-muted: #484f58;
+            --accent: #58a6ff;
+            --accent-hover: #79c0ff;
+            --success: #3fb950;
+            --success-bg: rgba(63, 185, 80, 0.1);
+            --warning: #d29922;
+            --warning-bg: rgba(210, 153, 34, 0.1);
+            --error: #f85149;
+            --error-bg: rgba(248, 81, 73, 0.1);
+            --running: #a371f7;
+            --running-bg: rgba(163, 113, 247, 0.1);
+            --dispatch: #f0883e;
+            --dispatch-bg: rgba(240, 136, 62, 0.1);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            --glow: 0 0 20px rgba(88, 166, 255, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* ─── Header ─── */
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, #1a1f2e 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), #a371f7);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* ─── Navigation ─── */
+        .nav-tabs {
+            display: flex;
+            gap: 0;
+            padding: 0 24px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .nav-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        /* ─── Layout ─── */
+        .main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 900px) {
+
+            .grid-2,
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ─── Cards ─── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-header h2 {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        /* ─── Forms ─── */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--border-focus);
+            box-shadow: var(--glow);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        textarea.form-input {
+            min-height: 60px;
+            resize: vertical;
+        }
+
+        select.form-input {
+            cursor: pointer;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        /* ─── Buttons ─── */
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #a371f7);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #3fb950, #2ea043);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f85149, #da3633);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #d29922, #e09b00);
+            color: white;
+        }
+
+        .btn-purple {
+            background: linear-gradient(135deg, #a371f7, #8957e5);
+            color: white;
+        }
+
+        .btn-outline {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-block {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        /* ─── Client List ─── */
+        .client-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .client-row:hover {
+            background: rgba(88, 166, 255, 0.05);
+        }
+
+        .client-row.selected {
+            background: rgba(88, 166, 255, 0.1);
+            border-left: 3px solid var(--accent);
+        }
+
+        .client-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #a371f7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .client-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .client-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .client-email {
+            font-size: 11px;
+            color: var(--text-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .client-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: var(--success-bg);
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        /* ─── Result Display ─── */
+        .result-box {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 12px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            display: none;
+        }
+
+        .result-box.visible {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        .result-box.success {
+            border-color: rgba(63, 185, 80, 0.3);
+        }
+
+        .result-box.error {
+            border-color: rgba(248, 81, 73, 0.3);
+            color: var(--error);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            display: none;
+        }
+
+        .loading .spinner {
+            display: inline-block;
+        }
+
+        /* ─── Action Cards ─── */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .action-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            transition: all 0.2s;
+        }
+
+        .action-card:hover {
+            border-color: rgba(88, 166, 255, 0.3);
+        }
+
+        .action-card h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ─── Selected Client Bar ─── */
+        .selected-client-bar {
+            background: rgba(88, 166, 255, 0.08);
+            border: 1px solid rgba(88, 166, 255, 0.2);
+            border-radius: var(--radius-sm);
+            padding: 8px 14px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .selected-client-bar .client-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .selected-client-bar .clear-btn {
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 12px;
+            background: none;
+            border: none;
+            font-family: inherit;
+        }
+
+        .selected-client-bar .clear-btn:hover {
+            color: var(--error);
+        }
+
+        /* ─── Message threads ─── */
+        .thread-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .thread-item:hover {
+            background: rgba(88, 166, 255, 0.05);
+        }
+
+        .thread-sender {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .thread-excerpt {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .thread-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 32px 16px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+            opacity: 0.5;
+        }
+
+        /* ─── Section Label ─── */
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin: 16px 0 8px;
+        }
+
+        /* ─── Stats ─── */
+        .stat-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .stat-box {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            flex: 1;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-top: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        /* ─── Scrollable list ─── */
+        .list-scroll {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 16px;
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">⚡</div>
+            <h1>AntiGravity Agent</h1>
+        </div>
+        <div class="header-status">
+            <div class="status-dot"></div>
+            <span>API Direct</span>
+        </div>
+    </header>
+
+    <nav class="nav-tabs">
+        <button class="nav-tab active" onclick="switchTab('clients')">👥 Klienter</button>
+        <button class="nav-tab" onclick="switchTab('tools')">🔧 API Verktyg</button>
+        <button class="nav-tab" onclick="switchTab('messages')">💬 Meddelanden</button>
+        <button class="nav-tab" onclick="switchTab('runs')">📊 Körningar</button>
+        <button class="nav-tab" onclick="switchTab('ai')">🧠 AI Agent</button>
+    </nav>
+
+    <div class="main">
+
+        <!-- ═══════ TAB: Clients ═══════ -->
+        <div id="tab-clients" class="tab-content active">
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>👥 Klienter</h2>
+                        <button class="btn btn-outline" onclick="loadClients()">🔄 Ladda</button>
+                    </div>
+                    <div style="padding: 8px 16px; border-bottom: 1px solid var(--border);">
+                        <input type="text" class="form-input" id="clientSearch" placeholder="Sök namn eller e-post..."
+                            oninput="filterClients(this.value)">
+                    </div>
+                    <div id="clientList" class="list-scroll">
+                        <div class="empty-state">
+                            <div class="icon">👥</div>
+                            <p>Klicka "Ladda" för att hämta klienter</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div id="clientDetail" class="card">
+                        <div class="card-header">
+                            <h2>📋 Klientinfo</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="empty-state">
+                                <div class="icon">👈</div>
+                                <p>Välj en klient</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="clientActions" style="display:none;">
+                        <div class="section-label">⚡ Snabbåtgärder</div>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="viewClientCalendar()">📅 Kalender</button>
+                            <button class="btn btn-success" onclick="viewClientPlans()">📋 Planer</button>
+                            <button class="btn btn-purple" onclick="viewClientNotes()">📝 Noteringar</button>
+                            <button class="btn btn-warning" onclick="viewClientSummary()">📊 Sammanfattning</button>
+                        </div>
+                        <div id="clientActionResult" class="result-box"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════ TAB: API Tools ═══════ -->
+        <div id="tab-tools" class="tab-content">
+            <div id="selectedClientBar" class="selected-client-bar" style="display:none;">
+                <span class="client-label">👤 <span id="barClientName">—</span> <small id="barClientId"
+                        style="color:var(--text-muted);font-weight:400"></small></span>
+                <button class="clear-btn" onclick="clearSelectedClient()">✕ Rensa</button>
+            </div>
+
+            <div class="action-grid">
+
+                <!-- Search Client -->
+                <div class="action-card">
+                    <h3>🔍 Sök Klient</h3>
+                    <div class="form-group">
+                        <input type="text" class="form-input" id="searchClientInput" placeholder="Namn eller e-post">
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="searchClient()">
+                        <span class="spinner"></span> Sök
+                    </button>
+                    <div id="searchClientResult" class="result-box"></div>
+                </div>
+
+                <!-- Create Training Plan -->
+                <div class="action-card">
+                    <h3>📋 Skapa Träningsplan</h3>
+                    <div class="form-group">
+                        <label class="form-label">Klient-ID</label>
+                        <input type="number" class="form-input client-id-field" id="planClientId"
+                            placeholder="Klient-ID">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Plannamn</label>
+                        <input type="text" class="form-input" id="planName" placeholder="T.ex. 'Fas 1 – Grundläggande'">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Beskrivning</label>
+                        <textarea class="form-input" id="planDesc" placeholder="Beskriv upplägget..."></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Startdatum</label>
+                            <input type="date" class="form-input" id="planStart">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Varaktighet (veckor)</label>
+                            <input type="number" class="form-input" id="planDuration" value="4">
+                        </div>
+                    </div>
+                    <button class="btn btn-success btn-block" onclick="createPlan()">
+                        <span class="spinner"></span> Skapa Plan
+                    </button>
+                    <div id="createPlanResult" class="result-box"></div>
+                </div>
+
+                <!-- Send Message -->
+                <div class="action-card">
+                    <h3>💬 Skicka Meddelande</h3>
+                    <div class="form-group">
+                        <label class="form-label">Mottagar-ID</label>
+                        <input type="number" class="form-input client-id-field" id="msgRecipientId"
+                            placeholder="Klient-ID">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ämne</label>
+                        <input type="text" class="form-input" id="msgSubject" placeholder="Ämnesrad">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Meddelande</label>
+                        <textarea class="form-input" id="msgBody" placeholder="Skriv ditt meddelande..."></textarea>
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="sendMsg()">
+                        <span class="spinner"></span> Skicka
+                    </button>
+                    <div id="sendMsgResult" class="result-box"></div>
+                </div>
+
+                <!-- Add Trainer Note -->
+                <div class="action-card">
+                    <h3>📝 Lägg Till Tränarnote</h3>
+                    <div class="form-group">
+                        <label class="form-label">Klient-ID</label>
+                        <input type="number" class="form-input client-id-field" id="noteClientId"
+                            placeholder="Klient-ID">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Notering</label>
+                        <textarea class="form-input" id="noteContent"
+                            placeholder="Anteckning om klienten..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Typ</label>
+                        <select class="form-input" id="noteType">
+                            <option value="general">Allmän</option>
+                            <option value="workout">Träning</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-purple btn-block" onclick="addNote()">
+                        <span class="spinner"></span> Spara Note
+                    </button>
+                    <div id="addNoteResult" class="result-box"></div>
+                </div>
+
+                <!-- Assign Program -->
+                <div class="action-card">
+                    <h3>🎯 Tilldela Program</h3>
+                    <div class="form-group">
+                        <label class="form-label">Klient-ID</label>
+                        <input type="number" class="form-input client-id-field" id="assignClientId"
+                            placeholder="Klient-ID">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Program</label>
+                        <select class="form-input" id="assignProgramId">
+                            <option value="">Laddar program...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Startdatum</label>
+                        <input type="date" class="form-input" id="assignStartDate">
+                    </div>
+                    <button class="btn btn-success btn-block" onclick="assignProgram()">
+                        <span class="spinner"></span> Tilldela
+                    </button>
+                    <div id="assignProgramResult" class="result-box"></div>
+                </div>
+
+                <!-- Raw API Call -->
+                <div class="action-card">
+                    <h3>🛠️ Raw API-anrop</h3>
+                    <div class="form-group">
+                        <label class="form-label">Endpoint</label>
+                        <input type="text" class="form-input" id="rawEndpoint" placeholder="/user/findUser">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Body (JSON)</label>
+                        <textarea class="form-input" id="rawBody" placeholder='{"searchTerm": "Albert"}'></textarea>
+                    </div>
+                    <button class="btn btn-warning btn-block" onclick="rawApiCall()">
+                        <span class="spinner"></span> Kör
+                    </button>
+                    <div id="rawApiResult" class="result-box"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ═══════ TAB: Messages ═══════ -->
+        <div id="tab-messages" class="tab-content">
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>💬 Inbox</h2>
+                        <button class="btn btn-outline" onclick="loadMessages()">🔄 Ladda</button>
+                    </div>
+                    <div id="messageList" class="list-scroll">
+                        <div class="empty-state">
+                            <div class="icon">💬</div>
+                            <p>Klicka "Ladda" för att hämta meddelanden</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h2>↩️ Svara</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label">Tråd-ID</label>
+                            <input type="number" class="form-input" id="replyThreadId" placeholder="Välj en tråd">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Svar</label>
+                            <textarea class="form-input" id="replyBody" placeholder="Skriv ditt svar..."></textarea>
+                        </div>
+                        <button class="btn btn-primary btn-block" onclick="replyToThread()">
+                            <span class="spinner"></span> Skicka Svar
+                        </button>
+                        <div id="replyResult" class="result-box"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════ TAB: Runs ═══════ -->
+        <div id="tab-runs" class="tab-content">
+            <div class="card" style="margin-bottom:20px;">
+                <div class="card-header">
+                    <h2>⚡ Kör Agent</h2>
+                </div>
+                <div class="card-body">
+                    <div class="section-label">💬 Activity Log</div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="runAgent('activity-log-handler', false)">💬 Hantera
+                            Kommentarer</button>
+                        <button class="btn btn-warning" onclick="runAgent('activity-log-handler', true)">🧪
+                            Dry-Run</button>
+                    </div>
+
+                    <div class="section-label">🏋️ Workout Editor</div>
+                    <div class="btn-group">
+                        <button class="btn btn-success" onclick="openWorkoutModal('replace')">🔄 Byt Övning</button>
+                        <button class="btn btn-danger" onclick="openWorkoutModal('delete')">🗑️ Ta Bort</button>
+                        <button class="btn btn-primary" onclick="openWorkoutModal('add')">➕ Lägg Till</button>
+                        <button class="btn btn-purple" onclick="openWorkoutModal('reorder')">↕️ Flytta</button>
+                    </div>
+
+                    <div class="section-label">📋 Uppgiftskö</div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline" onclick="runAgent('process-tasks', false)">📋 Kör
+                            Uppgiftskö</button>
+                    </div>
+
+                    <!-- Workout Modal -->
+                    <div id="workoutModal" style="display:none; margin-top:16px;">
+                        <div class="action-card">
+                            <h3><span id="wmIcon">🔄</span> <span id="wmTitle">Byt Övning</span></h3>
+                            <div class="form-group">
+                                <label class="form-label">Klient e-post</label>
+                                <input type="email" class="form-input" id="wmEmail" placeholder="klient@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Beskrivning</label>
+                                <textarea class="form-input" id="wmDesc" placeholder="Beskriv..."></textarea>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-primary" onclick="submitWorkoutTask()"><span
+                                        class="spinner"></span> Skicka</button>
+                                <button class="btn btn-outline"
+                                    onclick="document.getElementById('workoutModal').style.display='none'">Avbryt</button>
+                            </div>
+                            <div id="wmResult" class="result-box"></div>
+                        </div>
+                    </div>
+
+                    <div id="runStatus" class="result-box"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>🔄 Senaste Körningar</h2>
+                    <button class="btn btn-outline" onclick="loadRuns()">🔄</button>
+                </div>
+                <div id="runsList" class="list-scroll">
+                    <div class="empty-state">
+                        <div class="icon">📭</div>
+                        <p>Inga körningar</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════ TAB: AI Agent ═══════ -->
+        <div id="tab-ai" class="tab-content">
+            <div class="selected-client-bar" id="aiSelectedClient" style="display:none"></div>
+
+            <div class="grid-2">
+                <!-- Onboarding -->
+                <div class="card" style="grid-column: span 2">
+                    <div class="card-header">
+                        <h2>🚀 Startinlämning → Träningsupplägg</h2>
+                    </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">Fyll i klientens data
+                        från startinlämningen. AI:n skapar ett komplett träningsupplägg.</p>
+                    <div class="grid-2">
+                        <div>
+                            <label>Förnamn *</label>
+                            <input type="text" id="aiFirstName" placeholder="Klientens förnamn">
+                            <label>Efternamn</label>
+                            <input type="text" id="aiLastName" placeholder="Efternamn">
+                            <label>Ålder</label>
+                            <input type="number" id="aiAge" placeholder="25">
+                            <label>Kön</label>
+                            <select id="aiGender">
+                                <option value="">Välj...</option>
+                                <option value="man">Man</option>
+                                <option value="kvinna">Kvinna</option>
+                                <option value="annat">Annat</option>
+                            </select>
+                            <label>Erfarenhetsnivå</label>
+                            <select id="aiExperience">
+                                <option value="nybörjare">Nybörjare (0-6 mån)</option>
+                                <option value="medel">Medel (6-24 mån)</option>
+                                <option value="avancerad">Avancerad (2+ år)</option>
+                            </select>
+                            <label>Dagar/vecka</label>
+                            <input type="number" id="aiDays" value="3" min="1" max="7">
+                        </div>
+                        <div>
+                            <label>Mål</label>
+                            <textarea id="aiGoals" rows="3"
+                                placeholder="T.ex. bygga muskler, gå ner i vikt, bli starkare..."></textarea>
+                            <label>Skador / Begränsningar</label>
+                            <textarea id="aiInjuries" rows="2"
+                                placeholder="T.ex. ont i axeln, dåliga knän..."></textarea>
+                            <label>Utrustning</label>
+                            <input type="text" id="aiEquipment"
+                                placeholder="T.ex. fullständigt gym, hemmagym med hantlar">
+                            <label>Preferenser</label>
+                            <textarea id="aiPreferences" rows="2"
+                                placeholder="T.ex. gillar inte löpning, vill ha supersets..."></textarea>
+                            <label>Övrig info</label>
+                            <textarea id="aiAdditional" rows="2" placeholder="Allt annat relevant..."></textarea>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" style="width:100%; margin-top:16px" onclick="runOnboarding()"
+                        id="btnOnboard">🧠 Generera Träningsupplägg</button>
+                    <div id="onboardResult" class="result-box" style="margin-top:16px"></div>
+                    <div id="onboardPreview" style="display:none; margin-top:16px"></div>
+                    <div id="onboardActions" style="display:none; margin-top:16px; text-align:center">
+                        <button class="btn btn-primary" style="width:100%; font-size:16px; padding:14px"
+                            onclick="executeOnboardingPlan()" id="btnExecute">✅ Kör — Skapa allt i Trainerize</button>
+                    </div>
+                    <div id="executeStatus" class="result-box" style="margin-top:12px"></div>
+                </div>
+
+                <!-- Exercise Replacement -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>🔄 Föreslå Övningsbyte</h2>
+                    </div>
+                    <label>Nuvarande övning *</label>
+                    <input type="text" id="aiCurrExercise" placeholder="T.ex. Barbell Back Squat">
+                    <label>Muskelgrupp</label>
+                    <input type="text" id="aiMuscleGroup" placeholder="T.ex. Quadriceps, Glutes">
+                    <label>Klientens mål</label>
+                    <input type="text" id="aiExGoal" placeholder="T.ex. Muskelbyggnad">
+                    <label>Anledning till byte</label>
+                    <input type="text" id="aiExReason" placeholder="T.ex. Smärta i knä">
+                    <button class="btn btn-primary" style="width:100%; margin-top:12px"
+                        onclick="runExerciseReplace()">🔄 Föreslå Ersättning</button>
+                    <div id="exerciseResult" class="result-box" style="margin-top:12px"></div>
+                </div>
+
+                <!-- Message Composer -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>💬 Formulera Svar</h2>
+                    </div>
+                    <label>Klientens namn *</label>
+                    <input type="text" id="aiMsgClient" placeholder="Förnamn">
+                    <label>Meddelande från klient *</label>
+                    <textarea id="aiMsgText" rows="4" placeholder="Klistra in klientens meddelande här..."></textarea>
+                    <label>Klientens mål (valfritt)</label>
+                    <input type="text" id="aiMsgGoal" placeholder="T.ex. Styrkeökning">
+                    <button class="btn btn-primary" style="width:100%; margin-top:12px" onclick="runMessageCompose()">💬
+                        Generera Svar</button>
+                    <div id="messageResult" class="result-box" style="margin-top:12px"></div>
+                </div>
+
+                <!-- Freeform -->
+                <div class="card" style="grid-column: span 2">
+                    <div class="card-header">
+                        <h2>🔮 Fritt AI-anrop</h2>
+                    </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 12px; font-size: 14px;">Ställ valfri fråga
+                        till AI-tränaren. Den har PTO:s tränarprofil som grund.</p>
+                    <textarea id="aiQuery" rows="4"
+                        placeholder="T.ex. Ge mig ett 4-veckors progressionsschema för en nybörjare som tränar 3 dagar/vecka..."></textarea>
+                    <button class="btn btn-primary" style="width:100%; margin-top:12px" onclick="runFreeform()">🔮 Fråga
+                        AI</button>
+                    <div id="freeformResult" class="result-box" style="margin-top:12px"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="footer">AntiGravity Agent v3.0 · Direct API Dashboard</footer>
+
+    <script>
+        const API = window.location.origin;
+        let allClients = [];
+        let selectedClient = null;
+        let lastOnboardingResult = null;
+
+        // ─── Tab Navigation ───
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            event.target.classList.add('active');
+            if (tab === 'tools') loadPrograms();
+            if (tab === 'ai' && selectedClient) {
+                document.getElementById('aiFirstName').value = selectedClient.firstName || '';
+                document.getElementById('aiLastName').value = selectedClient.lastName || '';
+                document.getElementById('aiMsgClient').value = selectedClient.firstName || '';
+                const bar = document.getElementById('aiSelectedClient');
+                bar.style.display = 'flex';
+                bar.innerHTML = `👤 <strong>${esc(selectedClient.firstName)} ${esc(selectedClient.lastName || '')}</strong> <span style="color: var(--text-secondary); margin-left: 8px">ID: ${selectedClient.id}</span>`;
+            }
+        }
+
+        // ─── Utility ───
+        function esc(str) {
+            if (!str) return '';
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        function showResult(id, data, isError = false) {
+            const el = document.getElementById(id);
+            el.className = `result-box visible ${isError ? 'error' : 'success'}`;
+            el.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+        }
+
+        async function apiGet(url) {
+            const res = await fetch(`${API}${url}`);
+            return res.json();
+        }
+
+        async function apiPost(url, body) {
+            const res = await fetch(`${API}${url}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            return res.json();
+        }
+
+        function setLoading(btn, loading) {
+            if (loading) { btn.classList.add('loading'); btn.disabled = true; }
+            else { btn.classList.remove('loading'); btn.disabled = false; }
+        }
+
+        // ─── Clients ───
+        async function loadClients() {
+            const el = document.getElementById('clientList');
+            el.innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>Laddar klienter...</p></div>';
+            try {
+                const data = await apiGet('/api/trainerize/clients');
+                allClients = data?.data?.users || data?.users || data?.data?.result || [];
+                if (!Array.isArray(allClients)) allClients = [];
+                renderClients(allClients);
+            } catch (err) {
+                el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(err.message)}</p></div>`;
+            }
+        }
+
+        function filterClients(q) {
+            const filtered = q ? allClients.filter(c =>
+                (c.name || '').toLowerCase().includes(q.toLowerCase()) ||
+                (c.email || '').toLowerCase().includes(q.toLowerCase())
+            ) : allClients;
+            renderClients(filtered);
+        }
+
+        function renderClients(clients) {
+            const el = document.getElementById('clientList');
+            if (!clients.length) {
+                el.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>Inga klienter hittade</p></div>';
+                return;
+            }
+            el.innerHTML = clients.map(c => {
+                const initials = ((c.firstName || '')[0] || '') + ((c.lastName || '')[0] || '');
+                const name = `${c.firstName || ''} ${c.lastName || ''}`.trim() || c.name || c.email || 'Okänd';
+                return `
+                    <div class="client-row ${selectedClient?.id === c.id ? 'selected' : ''}"
+                         onclick="selectClient(${JSON.stringify(c).replace(/"/g, '&quot;')})">
+                        <div class="client-avatar">${esc(initials.toUpperCase())}</div>
+                        <div class="client-info">
+                            <div class="client-name">${esc(name)}</div>
+                            <div class="client-email">${esc(c.email || '')}</div>
+                        </div>
+                        <span class="client-badge">${esc(c.status || 'active')}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectClient(client) {
+            selectedClient = client;
+            const name = `${client.firstName || ''} ${client.lastName || ''}`.trim() || client.name || 'Okänd';
+
+            // Update client detail card
+            document.getElementById('clientDetail').innerHTML = `
+                <div class="card-header"><h2>📋 ${esc(name)}</h2></div>
+                <div class="card-body">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
+                        <div><strong>ID:</strong> ${client.id}</div>
+                        <div><strong>E-post:</strong> ${esc(client.email || '—')}</div>
+                        <div><strong>Status:</strong> ${esc(client.status || '—')}</div>
+                        <div><strong>Telefon:</strong> ${esc(client.phone || '—')}</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('clientActions').style.display = 'block';
+
+            // Fill client ID in all tool forms
+            document.querySelectorAll('.client-id-field').forEach(f => f.value = client.id);
+
+            // Update selected client bar
+            document.getElementById('barClientName').textContent = name;
+            document.getElementById('barClientId').textContent = `(ID: ${client.id})`;
+            document.getElementById('selectedClientBar').style.display = 'flex';
+
+            // Re-render client list to show selected state
+            renderClients(allClients.filter(c =>
+                !document.getElementById('clientSearch').value ||
+                (c.name || '').toLowerCase().includes(document.getElementById('clientSearch').value.toLowerCase()) ||
+                (c.email || '').toLowerCase().includes(document.getElementById('clientSearch').value.toLowerCase())
+            ));
+        }
+
+        function clearSelectedClient() {
+            selectedClient = null;
+            document.getElementById('selectedClientBar').style.display = 'none';
+            document.querySelectorAll('.client-id-field').forEach(f => f.value = '');
+        }
+
+        // ─── Client Detail Actions ───
+        async function viewClientCalendar() {
+            if (!selectedClient) return;
+            const el = document.getElementById('clientActionResult');
+            el.className = 'result-box visible';
+            el.textContent = '⏳ Laddar kalender...';
+            const data = await apiGet(`/api/trainerize/client/${selectedClient.id}/calendar`);
+            showResult('clientActionResult', data);
+        }
+
+        async function viewClientPlans() {
+            if (!selectedClient) return;
+            const el = document.getElementById('clientActionResult');
+            el.className = 'result-box visible';
+            el.textContent = '⏳ Laddar planer...';
+            const data = await apiGet(`/api/trainerize/client/${selectedClient.id}/plans`);
+            showResult('clientActionResult', data);
+        }
+
+        async function viewClientNotes() {
+            if (!selectedClient) return;
+            const el = document.getElementById('clientActionResult');
+            el.className = 'result-box visible';
+            el.textContent = '⏳ Laddar noteringar...';
+            const data = await apiGet(`/api/trainerize/client/${selectedClient.id}/notes`);
+            showResult('clientActionResult', data);
+        }
+
+        async function viewClientSummary() {
+            if (!selectedClient) return;
+            const el = document.getElementById('clientActionResult');
+            el.className = 'result-box visible';
+            el.textContent = '⏳ Laddar sammanfattning...';
+            const data = await apiGet(`/api/trainerize/client/${selectedClient.id}/summary`);
+            showResult('clientActionResult', data);
+        }
+
+        // ─── API Tool Actions ───
+        async function searchClient() {
+            const q = document.getElementById('searchClientInput').value.trim();
+            if (!q) return;
+            const btn = event.target.closest('.btn');
+            setLoading(btn, true);
+            try {
+                const data = await apiGet(`/api/trainerize/clients/search?q=${encodeURIComponent(q)}`);
+                showResult('searchClientResult', data);
+            } catch (err) {
+                showResult('searchClientResult', err.message, true);
+            }
+            setLoading(btn, false);
+        }
+
+        async function createPlan() {
+            const btn = event.target.closest('.btn');
+            setLoading(btn, true);
+            try {
+                const data = await apiPost('/api/trainerize/plan/create', {
+                    userId: parseInt(document.getElementById('planClientId').value),
+                    plan: {
+                        name: document.getElementById('planName').value,
+                        instruction: document.getElementById('planDesc').value,
+                        startDate: document.getElementById('planStart').value,
+                        duration: parseInt(document.getElementById('planDuration').value) || 4,
+                        durationType: 'week',
+                    },
+                });
+                showResult('createPlanResult', data);
+            } catch (err) {
+                showResult('createPlanResult', err.message, true);
+            }
+            setLoading(btn, false);
+        }
+
+        async function sendMsg() {
+            const btn = event.target.closest('.btn');
+            setLoading(btn, true);
+            try {
+                const data = await apiPost('/api/trainerize/messages/send', {
+                    senderID: 4452827,
+                    recipients: [parseInt(document.getElementById('msgRecipientId').value)],
+                    subject: document.getElementById('msgSubject').value,
+                    body: document.getElementById('msgBody').value,
+                });
+                showResult('sendMsgResult', data);
+            } catch (err) {
+                showResult('sendMsgResult', err.message, true);
+            }
+            setLoading(btn, false);
+        }
+
+        async function addNote() {
+            const btn = event.target.closest('.btn');
+            setLoading(btn, true);
+            try {
+                const data = await apiPost('/api/trainerize/note/add', {
+                    trainerID: 4452827,
+                    clientID: parseInt(document.getElementById('noteClientId').value),
+                    content: document.getElementById('noteContent').value,
+                    type: document.getElementById('noteType').value,
+                });
+                showResult('addNoteResult', data);
+            } catch (err) {
+                showResult('addNoteResult', err.message, true);
+            }
+            setLoading(btn, false);
+        }
+
+        async function assignProgram() {
+            const btn = event.target.closest('.btn');
+            setLoading(btn, true);
+            try {
+                const data = await apiPost('/api/trainerize/program/assign', {
+                    userId: document.getElementById('assignClientId').value,
+                    programId: document.getElementById('assignProgramId').value,
+                    startDate: document.getElementById('assignStartDate').value,
+                });
+                showResult('assignProgramResult', data);
+            } catch (err) {
+                showResult('assignProgramResult', err.message, true);
+            }
+            setLoading(btn, false);
+        }
+
+        async function rawApiCall() {
+            const btn = event.target.closest('.btn');
+            setLoading(btn, true);
+            try {
+                let body = {};
+                const rawBody = document.getElementById('rawBody').value.trim();
+                if (rawBody) body = JSON.parse(rawBody);
+                const data = await apiPost('/api/trainerize/raw', {
+                    endpoint: document.getElementById('rawEndpoint').value,
+                    body,
+                });
+                showResult('rawApiResult', data);
+            } catch (err) {
+                showResult('rawApiResult', err.message, true);
+            }
+            setLoading(btn, false);
+        }
+
+        async function loadPrograms() {
+            try {
+                const data = await apiGet('/api/trainerize/programs');
+                const programs = data?.data?.result || [];
+                const sel = document.getElementById('assignProgramId');
+                sel.innerHTML = '<option value="">Välj program...</option>' +
+                    programs.map(p => `<option value="${p.id}">${esc(p.name || p.id)}</option>`).join('');
+            } catch { /* ignore */ }
+        }
+
+        // ─── Messages ───
+        async function loadMessages() {
+            const el = document.getElementById('messageList');
+            el.innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>Laddar...</p></div>';
+            try {
+                const data = await apiGet('/api/trainerize/messages');
+                const threads = data?.data?.result || data?.result || [];
+                if (!threads.length) {
+                    el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>Inga meddelanden</p></div>';
+                    return;
+                }
+                el.innerHTML = threads.map(t => `
+                    <div class="thread-item" onclick="document.getElementById('replyThreadId').value=${t.threadID || t.id}">
+                        <div class="thread-sender">${esc(t.senderName || t.subject || 'Okänd')}</div>
+                        <div class="thread-excerpt">${esc(t.excerpt || t.body || '—')}</div>
+                        <div class="thread-time">Tråd #${t.threadID || t.id}</div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(err.message)}</p></div>`;
+            }
+        }
+
+        async function replyToThread() {
+            const btn = event.target.closest('.btn');
+            setLoading(btn, true);
+            try {
+                const data = await apiPost('/api/trainerize/messages/reply', {
+                    threadId: parseInt(document.getElementById('replyThreadId').value),
+                    body: document.getElementById('replyBody').value,
+                });
+                showResult('replyResult', data);
+                document.getElementById('replyBody').value = '';
+            } catch (err) {
+                showResult('replyResult', err.message, true);
+            }
+            setLoading(btn, false);
+        }
+
+        // ─── Run Agent ───
+        async function runAgent(agentId, dryRun) {
+            const el = document.getElementById('runStatus');
+            el.className = 'result-box visible success';
+            el.textContent = `⏳ Startar ${agentId}...`;
+            try {
+                const data = await apiPost('/api/run-agent', { agentId, dryRun });
+                el.textContent = `🔄 Startad — ${data.runId}`;
+                const poll = setInterval(async () => {
+                    try {
+                        const s = await apiGet(`/api/run-status/${data.runId}`);
+                        if (s.status === 'running') {
+                            el.textContent = `🔄 ${agentId} körs...`;
+                        } else {
+                            clearInterval(poll);
+                            el.className = `result-box visible ${s.status === 'completed' ? 'success' : 'error'}`;
+                            el.textContent = JSON.stringify(s, null, 2);
+                        }
+                    } catch { }
+                }, 3000);
+            } catch (err) {
+                el.className = 'result-box visible error';
+                el.textContent = err.message;
+            }
+        }
+
+        // ─── Workout Modal ───
+        const wmMeta = {
+            replace: { icon: '🔄', title: 'Byt Övning', prefix: 'Byt ut ' },
+            delete: { icon: '🗑️', title: 'Ta Bort Övning', prefix: 'Ta bort ' },
+            add: { icon: '➕', title: 'Lägg Till Övning', prefix: 'Lägg till ' },
+            reorder: { icon: '↕️', title: 'Flytta Övning', prefix: 'Flytta ' },
+        };
+
+        function openWorkoutModal(action) {
+            const m = wmMeta[action];
+            document.getElementById('wmIcon').textContent = m.icon;
+            document.getElementById('wmTitle').textContent = m.title;
+            document.getElementById('wmDesc').value = m.prefix;
+            document.getElementById('workoutModal').style.display = 'block';
+        }
+
+        async function submitWorkoutTask() {
+            const btn = event.target.closest('.btn');
+            setLoading(btn, true);
+            try {
+                const data = await apiPost('/api/tasks', {
+                    clientEmail: document.getElementById('wmEmail').value,
+                    taskDescription: document.getElementById('wmDesc').value,
+                    agentId: 'trainerize-workout-editor',
+                    autoApprove: true,
+                });
+                showResult('wmResult', data);
+            } catch (err) {
+                showResult('wmResult', err.message, true);
+            }
+            setLoading(btn, false);
+        }
+
+        // ─── Runs ───
+        async function loadRuns() {
+            const el = document.getElementById('runsList');
+            try {
+                const data = await apiGet('/api/runs');
+                const runs = data.runs || [];
+                if (!runs.length) {
+                    el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>Inga körningar</p></div>';
+                    return;
+                }
+                el.innerHTML = runs.slice(0, 20).map(r => {
+                    const time = r.createdAt ? new Date(r.createdAt).toLocaleString('sv-SE', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : '–';
+                    const badge = r.status === 'completed' ? 'success' : r.status === 'failed' ? 'error' : 'running';
+                    return `
+                        <div class="client-row" style="cursor:default">
+                            <div class="client-info">
+                                <div class="client-name">${esc(r.taskSummary || r.runId)}</div>
+                                <div class="client-email">${time}</div>
+                            </div>
+                            <span class="client-badge" style="background:var(--${badge}-bg);color:var(--${badge})">${esc(r.status)}</span>
+                        </div>
+                    `;
+                }).join('');
+            } catch {
+                el.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Kan inte ladda</p></div>';
+            }
+        }
+
+        // ─── AI Agent ───
+        async function runOnboarding() {
+            const btn = document.getElementById('btnOnboard');
+            const resultEl = document.getElementById('onboardResult');
+            const previewEl = document.getElementById('onboardPreview');
+
+            const intake = {
+                firstName: document.getElementById('aiFirstName').value.trim(),
+                lastName: document.getElementById('aiLastName').value.trim(),
+                age: parseInt(document.getElementById('aiAge').value) || undefined,
+                gender: document.getElementById('aiGender').value || undefined,
+                experience: document.getElementById('aiExperience').value,
+                daysPerWeek: parseInt(document.getElementById('aiDays').value) || 3,
+                goals: document.getElementById('aiGoals').value.trim() || undefined,
+                injuries: document.getElementById('aiInjuries').value.trim() || undefined,
+                equipment: document.getElementById('aiEquipment').value.trim() || undefined,
+                preferences: document.getElementById('aiPreferences').value.trim() || undefined,
+                additionalInfo: document.getElementById('aiAdditional').value.trim() || undefined,
+            };
+
+            if (!intake.firstName) {
+                showResult('onboardResult', 'Förnamn krävs', true);
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Genererar upplägg... (kan ta 15-30s)';
+            resultEl.className = 'result-box';
+            resultEl.textContent = '';
+            previewEl.style.display = 'none';
+
+            try {
+                const data = await apiPost('/api/ai/onboard', intake);
+                if (!data.ok) throw new Error(data.error);
+                const result = data.data;
+
+                // Show structured preview
+                previewEl.style.display = 'block';
+                previewEl.innerHTML = renderOnboardingPreview(result);
+
+                // Store for execution and show Kör button
+                lastOnboardingResult = result;
+                document.getElementById('onboardActions').style.display = 'block';
+                document.getElementById('executeStatus').className = 'result-box';
+                document.getElementById('executeStatus').textContent = '';
+
+                // Show raw JSON in result box
+                showResult('onboardResult', result);
+            } catch (err) {
+                showResult('onboardResult', `Fel: ${err.message}`, true);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🧠 Generera Träningsupplägg';
+            }
+        }
+
+        async function executeOnboardingPlan() {
+            if (!lastOnboardingResult) {
+                showResult('executeStatus', 'Ingen plan att köra. Generera först.', true);
+                return;
+            }
+            if (!selectedClient) {
+                showResult('executeStatus', 'Välj en klient i Klient-fliken först.', true);
+                return;
+            }
+
+            const btn = document.getElementById('btnExecute');
+            const statusEl = document.getElementById('executeStatus');
+            btn.disabled = true;
+            btn.textContent = '⏳ Skapar upplägg i Trainerize...';
+            statusEl.className = 'result-box visible';
+            statusEl.textContent = 'Laddar övningsbibliotek och matchar övningar...';
+
+            try {
+                const data = await apiPost('/api/ai/execute-onboarding', {
+                    clientId: selectedClient.id,
+                    trainerId: selectedClient.trainerID || selectedClient.trainerId,
+                    onboardingResult: lastOnboardingResult,
+                });
+
+                if (!data.data) throw new Error(data.error || 'Okänt fel');
+                const result = data.data;
+
+                // Render step-by-step status
+                let html = result.ok
+                    ? '✅ Upplägget är skapat i Trainerize!\n\n'
+                    : '⚠️ Delvis klart (se fel nedan)\n\n';
+
+                html += 'Steg:\n';
+                for (const s of result.steps) {
+                    const icon = s.status === 'ok' ? '✅' : s.status === 'skipped' ? '⏭️' : '❌';
+                    html += `  ${icon} ${s.step}: ${s.detail || ''}\n`;
+                }
+
+                if (result.errors?.length) {
+                    html += '\nFel:\n';
+                    result.errors.forEach(e => { html += `  ❌ ${e}\n`; });
+                }
+
+                statusEl.className = `result-box visible ${result.ok ? 'success' : 'error'}`;
+                statusEl.textContent = html;
+
+                if (result.ok) {
+                    btn.textContent = '✅ Klart!';
+                    btn.style.background = 'var(--success)';
+                } else {
+                    btn.textContent = '⚠️ Delvis klart';
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                showResult('executeStatus', `Fel: ${err.message}`, true);
+                btn.disabled = false;
+                btn.textContent = '✅ Kör — Skapa allt i Trainerize';
+            }
+        }
+
+        function renderOnboardingPreview(result) {
+            let html = `<div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:12px">`;
+
+            // Client Summary
+            html += `<div style="margin-bottom:20px">
+                <h3 style="color:var(--accent);margin-bottom:8px">📋 Klientsammanfattning</h3>
+                <p style="color:var(--text-secondary);line-height:1.6">${esc(result.clientSummary)}</p>
+            </div>`;
+
+            // Plan
+            if (result.plan) {
+                html += `<div style="margin-bottom:20px;padding:16px;background:var(--bg-card);border-radius:var(--radius-sm)">
+                    <h3 style="color:var(--success);margin-bottom:8px">📋 ${esc(result.plan.name)}</h3>
+                    <p style="color:var(--text-secondary);margin-bottom:8px">${esc(result.plan.description)}</p>
+                    <div style="display:flex;gap:16px">
+                        <span style="color:var(--text-muted)">Varaktighet: <strong style="color:var(--text-primary)">${result.plan.durationWeeks} veckor</strong></span>
+                        <span style="color:var(--text-muted)">Dagar/vecka: <strong style="color:var(--text-primary)">${result.plan.daysPerWeek}</strong></span>
+                    </div>
+                </div>`;
+            }
+
+            // Workouts
+            if (result.workouts) {
+                html += `<h3 style="color:var(--accent);margin-bottom:12px">🏋️ Träningspass (${result.workouts.length} st)</h3>`;
+                result.workouts.forEach(w => {
+                    html += `<div style="margin-bottom:16px;padding:16px;background:var(--bg-card);border-radius:var(--radius-sm);border-left:3px solid var(--accent)">
+                        <h4 style="margin-bottom:4px">${esc(w.name)}</h4>
+                        <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">${esc(w.description)}</p>
+                        <table style="width:100%;font-size:13px;border-collapse:collapse">
+                            <tr style="color:var(--text-muted);text-align:left">
+                                <th style="padding:4px 8px">Övning</th>
+                                <th style="padding:4px 8px">Set</th>
+                                <th style="padding:4px 8px">Reps</th>
+                                <th style="padding:4px 8px">Vila</th>
+                                <th style="padding:4px 8px">Notering</th>
+                            </tr>`;
+                    w.exercises.forEach(ex => {
+                        html += `<tr style="border-top:1px solid var(--border)">
+                            <td style="padding:6px 8px;color:var(--text-primary)">${esc(ex.name)}</td>
+                            <td style="padding:6px 8px">${ex.sets}</td>
+                            <td style="padding:6px 8px">${esc(String(ex.reps))}</td>
+                            <td style="padding:6px 8px">${ex.restSeconds}s</td>
+                            <td style="padding:6px 8px;color:var(--text-muted);font-size:12px">${esc(ex.notes || '')}</td>
+                        </tr>`;
+                    });
+                    html += `</table></div>`;
+                });
+            }
+
+            // Weekly Schedule
+            if (result.weeklySchedule) {
+                const dayNames = { monday: 'Måndag', tuesday: 'Tisdag', wednesday: 'Onsdag', thursday: 'Torsdag', friday: 'Fredag', saturday: 'Lördag', sunday: 'Söndag' };
+                html += `<h3 style="color:var(--accent);margin-bottom:8px">📅 Veckoschema</h3>
+                <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px">`;
+                Object.entries(dayNames).forEach(([key, name]) => {
+                    const val = result.weeklySchedule?.[key];
+                    const active = val && val !== 'null' && val !== 'Vila';
+                    html += `<div style="text-align:center;padding:12px 8px;border-radius:var(--radius-sm);background:${active ? 'var(--success-bg)' : 'var(--bg-card)'};border:1px solid ${active ? 'var(--success)' : 'var(--border)'}">
+                        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">${name}</div>
+                        <div style="font-size:12px;color:${active ? 'var(--success)' : 'var(--text-muted)'}">${active ? esc(val) : 'Vila'}</div>
+                    </div>`;
+                });
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        async function runExerciseReplace() {
+            const exercise = document.getElementById('aiCurrExercise').value.trim();
+            if (!exercise) { showResult('exerciseResult', 'Ange nuvarande övning', true); return; }
+
+            showResult('exerciseResult', '⏳ AI tänker...');
+            try {
+                const data = await apiPost('/api/ai/suggest-exercise', {
+                    currentExercise: exercise,
+                    muscleGroup: document.getElementById('aiMuscleGroup').value.trim() || undefined,
+                    clientGoal: document.getElementById('aiExGoal').value.trim() || undefined,
+                    reason: document.getElementById('aiExReason').value.trim() || undefined,
+                });
+                if (!data.ok) throw new Error(data.error);
+                const r = data.data;
+
+                let html = `<strong style="color:var(--success)">Rekommendation: ${esc(r.recommendation.exerciseName)}</strong>\n`;
+                html += `Muskelgrupper: ${r.recommendation.muscleGroups?.join(', ')}\n`;
+                html += `${r.recommendation.sets} set × ${r.recommendation.reps} | Vila: ${r.recommendation.restSeconds}s\n`;
+                if (r.recommendation.notes) html += `Notering: ${esc(r.recommendation.notes)}\n`;
+                html += `\nMotivering: ${esc(r.reasoning)}\n`;
+                if (r.alternatives?.length) {
+                    html += `\nAlternativ:\n`;
+                    r.alternatives.forEach(a => { html += `  - ${esc(a.exerciseName)}: ${esc(a.reasoning)}\n`; });
+                }
+                const el = document.getElementById('exerciseResult');
+                el.className = 'result-box visible success';
+                el.textContent = html;
+            } catch (err) {
+                showResult('exerciseResult', `Fel: ${err.message}`, true);
+            }
+        }
+
+        async function runMessageCompose() {
+            const name = document.getElementById('aiMsgClient').value.trim();
+            const msg = document.getElementById('aiMsgText').value.trim();
+            if (!name || !msg) { showResult('messageResult', 'Namn och meddelande krävs', true); return; }
+
+            showResult('messageResult', '⏳ AI formulerar svar...');
+            try {
+                const data = await apiPost('/api/ai/compose-message', {
+                    clientName: name,
+                    message: msg,
+                    clientGoal: document.getElementById('aiMsgGoal').value.trim() || undefined,
+                });
+                if (!data.ok) throw new Error(data.error);
+                const r = data.data;
+
+                let html = `Kategori: ${esc(r.category)} | Ton: ${esc(r.tone)}\n\n`;
+                html += `─── Föreslaget svar ───\n${esc(r.reply)}\n`;
+                if (r.suggestedActions?.length) {
+                    html += `\nFöreslagna åtgärder:\n`;
+                    r.suggestedActions.forEach(a => { html += `  → ${esc(a)}\n`; });
+                }
+                const el = document.getElementById('messageResult');
+                el.className = 'result-box visible success';
+                el.textContent = html;
+            } catch (err) {
+                showResult('messageResult', `Fel: ${err.message}`, true);
+            }
+        }
+
+        async function runFreeform() {
+            const prompt = document.getElementById('aiQuery').value.trim();
+            if (!prompt) { showResult('freeformResult', 'Skriv en fråga', true); return; }
+
+            showResult('freeformResult', '⏳ AI tänker...');
+            try {
+                const data = await apiPost('/api/ai/query', { prompt });
+                if (!data.ok) throw new Error(data.error);
+                const el = document.getElementById('freeformResult');
+                el.className = 'result-box visible success';
+                el.textContent = data.data.response;
+            } catch (err) {
+                showResult('freeformResult', `Fel: ${err.message}`, true);
+            }
+        }
+    </script>
+</body>
+
+</html>
