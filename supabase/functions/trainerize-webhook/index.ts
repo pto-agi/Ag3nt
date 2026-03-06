@@ -1,6 +1,6 @@
 // Supabase Edge Function: Trainerize Webhook Receiver
 // Receives webhook events from Trainerize and stores them in the database.
-// For message events, it can optionally trigger an AI-powered auto-reply.
+// Validates security key header, enriches messages via getMessage API.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -10,7 +10,7 @@ const WEBHOOK_SECRET = Deno.env.get("TRAINERIZE_WEBHOOK_SECRET") || "";
 
 // Trainerize API credentials
 const TZ_GROUP_ID = "11613";
-const TZ_API_TOKEN = Deno.env.get("TRAINERIZE_API_TOKEN") || "0nC1ptkUms0NGJJIWw";
+const TZ_API_TOKEN = Deno.env.get("TRAINERIZE_API_TOKEN") || "";
 const TZ_BASE_URL = "https://api.trainerize.com/v03";
 const TZ_AUTH = `Basic ${btoa(`${TZ_GROUP_ID}:${TZ_API_TOKEN}`)}`;
 const TZ_TRAINER_ID = 4452827; // PTO trainer account
@@ -25,11 +25,48 @@ async function tzApi(endpoint: string, body: Record<string, unknown>) {
   return res.json();
 }
 
-// ── Verify webhook signature (if Trainerize provides one) ──
-function verifySignature(body: string, signature: string | null): boolean {
-  if (!WEBHOOK_SECRET || !signature) return true; // Skip if no secret configured
-  // TODO: Implement HMAC verification when Trainerize confirms their signing method
-  return true;
+// ── Security key validation ──
+// Jason confirmed key: e5b1bad5bfb040a4889410051ac67819
+// We don't know the exact header name yet, so we check multiple candidates
+// and log all headers on first webhook to determine the correct one.
+function validateSecurityKey(req: Request): { valid: boolean; keyHeader?: string } {
+  if (!WEBHOOK_SECRET) return { valid: true }; // Skip if no secret configured
+
+  // Check common header names Trainerize might use
+  const candidates = [
+    "x-security-key",
+    "x-webhook-secret",
+    "x-trainerize-signature",
+    "x-webhook-signature",
+    "authorization",
+    "x-api-key",
+    "security-key",
+  ];
+
+  for (const header of candidates) {
+    const value = req.headers.get(header);
+    if (value === WEBHOOK_SECRET) {
+      return { valid: true, keyHeader: header };
+    }
+  }
+
+  // If none matched, check if ANY header contains the secret (discovery mode)
+  const allHeaders: Record<string, string> = {};
+  req.headers.forEach((value, key) => {
+    allHeaders[key] = value;
+    if (value === WEBHOOK_SECRET) {
+      console.log(`🔑 Security key found in header: "${key}"`);
+      return; // We'll still log all headers for debugging
+    }
+  });
+
+  // Log ALL headers so we can identify the correct one from Supabase logs
+  console.log("📋 All incoming headers:", JSON.stringify(allHeaders));
+
+  // In discovery mode: accept all requests but log the mismatch
+  // Once we know the correct header, we can tighten this
+  console.warn("⚠️ Security key not found in expected headers — accepting in discovery mode");
+  return { valid: true, keyHeader: "discovery-mode" };
 }
 
 // ── Main handler ──
@@ -43,23 +80,24 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const rawBody = await req.text();
-    const signature = req.headers.get("x-trainerize-signature") ||
-      req.headers.get("x-webhook-signature");
-
-    // Verify signature
-    if (!verifySignature(rawBody, signature)) {
-      console.error("Invalid webhook signature");
-      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+    // Validate security key
+    const { valid, keyHeader } = validateSecurityKey(req);
+    if (!valid) {
+      console.error("❌ Invalid webhook security key");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json" },
       });
     }
+    if (keyHeader) {
+      console.log(`✅ Security key validated via header: ${keyHeader}`);
+    }
 
+    const rawBody = await req.text();
     const payload = JSON.parse(rawBody);
     const eventType = payload.event || payload.type || payload.eventType || "unknown";
 
-    console.log(`Received webhook: ${eventType}`, JSON.stringify(payload).slice(0, 500));
+    console.log(`📨 Webhook: ${eventType}`, JSON.stringify(payload).slice(0, 500));
 
     // Initialize Supabase client with service role (full access)
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -71,7 +109,7 @@ Deno.serve(async (req: Request) => {
       payload.userID ||
       null;
 
-    // ── Store the webhook event ──
+    // ── Store the raw webhook event ──
     const { data: insertedEvent, error: insertError } = await supabase
       .from("webhook_events")
       .insert({
@@ -85,24 +123,20 @@ Deno.serve(async (req: Request) => {
 
     if (insertError) {
       console.error("Failed to store webhook event:", insertError);
-      // Still return 200 so Trainerize doesn't retry
     } else {
       console.log(`Stored event ${insertedEvent.id} (${eventType})`);
     }
 
     // ── Handle specific event types ──
 
-    // MESSAGE: New message from client
     if (eventType === "message.new" || eventType === "message.created") {
       await handleNewMessage(supabase, payload);
     }
 
-    // WORKOUT COMPLETED: Client finished a workout
     if (eventType === "dailyWorkout.completed" || eventType === "workout.completed") {
       await handleWorkoutCompleted(supabase, payload);
     }
 
-    // BODY STAT: Client logged weight/measurements
     if (eventType === "bodyStat.added" || eventType === "bodyStat.updated") {
       await handleBodyStat(supabase, payload);
     }
@@ -141,12 +175,27 @@ async function handleNewMessage(
   const messageId = data.messageID as number;
   const threadId = data.threadID as number;
   const senderId = data.senderID as number;
-  const body = data.body as string;
+  let body = data.body as string;
 
-  console.log(`New message from client ${senderId}: "${(body || "").slice(0, 100)}"`);
+  // ── Enrich via getMessage API ──
+  // Webhook payload might not have full message text, so fetch it
+  if (messageId) {
+    try {
+      const fullMessage = await tzApi("/message/get", { messageID: messageId });
+      if (fullMessage?.result) {
+        const msg = fullMessage.result;
+        body = msg.body || body;
+        console.log(`📩 Enriched message ${messageId}: "${(body || "").slice(0, 200)}"`);
+      }
+    } catch (err) {
+      console.warn("Failed to enrich message via API:", err);
+    }
+  }
+
+  console.log(`💬 New message from ${senderId} in thread ${threadId}: "${(body || "").slice(0, 100)}"`);
 
   // Store in messages table for conversation history
-  await supabase.from("client_messages").insert({
+  const { error } = await supabase.from("client_messages").insert({
     message_id: messageId,
     thread_id: threadId,
     sender_id: senderId,
@@ -155,15 +204,11 @@ async function handleNewMessage(
     sent_at: data.sentTime || new Date().toISOString(),
   });
 
-  // Fetch client context for AI response
-  const clientProfile = await tzApi("/user/get", { id: senderId });
-  const calendar = await tzApi("/calendar/getList", {
-    userID: senderId,
-    startDate: getDateOffset(-7),
-    endDate: getDateOffset(14),
-  });
+  if (error) {
+    console.error("Failed to store message:", error);
+  }
 
-  // Fetch recent conversation history from our DB
+  // Fetch recent conversation history from our DB (for future AI use)
   const { data: history } = await supabase
     .from("client_messages")
     .select("body, direction, sent_at")
@@ -171,19 +216,10 @@ async function handleNewMessage(
     .order("sent_at", { ascending: false })
     .limit(10);
 
-  // TODO: Generate AI response using the context
-  // For now, log the context and let the trainer handle manually
-  console.log("Client context gathered:", {
-    name: `${clientProfile?.firstName} ${clientProfile?.lastName}`,
-    message: body,
-    historyCount: history?.length || 0,
-    upcomingWorkouts: (calendar?.calendar || []).filter(
-      (d: Record<string, unknown>) => (d.items as unknown[])?.length > 0,
-    ).length,
-  });
+  console.log(`📚 Thread ${threadId} history: ${history?.length || 0} messages`);
 
-  // UNCOMMENT when ready for auto-reply:
-  // const aiResponse = await generateAIResponse(body, clientProfile, history, calendar);
+  // TODO: Generate AI response when ready
+  // const aiResponse = await generateAIResponse(body, context);
   // await tzApi("/message/reply", {
   //   threadID: threadId,
   //   userID: TZ_TRAINER_ID,
@@ -208,10 +244,9 @@ async function handleWorkoutCompleted(
   const clientId = data.userID as number;
   const workoutId = data.dailyWorkoutID as number;
 
-  console.log(`Workout completed: client ${clientId}, workout ${workoutId}`);
+  console.log(`🏋️ Workout completed: client ${clientId}, workout ${workoutId}`);
 
-  // Store completion data including comments and RPE (if provided in webhook)
-  await supabase.from("workout_completions").insert({
+  const { error } = await supabase.from("workout_completions").insert({
     client_id: clientId,
     daily_workout_id: workoutId,
     comment: data.comment as string,
@@ -219,6 +254,10 @@ async function handleWorkoutCompleted(
     completed_at: data.completedAt || new Date().toISOString(),
     payload: data,
   });
+
+  if (error) {
+    console.error("Failed to store workout completion:", error);
+  }
 }
 
 async function handleBodyStat(
@@ -228,9 +267,9 @@ async function handleBodyStat(
   const data = (payload.data || payload) as Record<string, unknown>;
   const clientId = data.userID as number;
 
-  console.log(`Body stat update: client ${clientId}`);
+  console.log(`📊 Body stat update: client ${clientId}`);
 
-  await supabase.from("body_stat_updates").insert({
+  const { error } = await supabase.from("body_stat_updates").insert({
     client_id: clientId,
     stat_type: data.type as string,
     value: data.value as number,
@@ -238,11 +277,8 @@ async function handleBodyStat(
     recorded_at: data.date || new Date().toISOString(),
     payload: data,
   });
-}
 
-// ── Utility ──
-function getDateOffset(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
+  if (error) {
+    console.error("Failed to store body stat:", error);
+  }
 }

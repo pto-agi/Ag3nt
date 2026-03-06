@@ -226,7 +226,7 @@ export async function executeOnboarding(input: ExecuteOnboardingInput): Promise<
             }
 
             if (dailyWorkouts.length > 0) {
-                await scheduleDailyWorkout(trainerId, dailyWorkouts);
+                await scheduleDailyWorkout({ userID: trainerId, dailyWorkouts });
                 steps.push({
                     step: 'Schemalägg vecka',
                     status: 'ok',
@@ -246,7 +246,7 @@ export async function executeOnboarding(input: ExecuteOnboardingInput): Promise<
     if (plan.clientSummary) {
         try {
             await addTrainerNote({
-                clientID: clientId,
+                userID: clientId,
                 content: plan.clientSummary,
                 type: 'general',
             });

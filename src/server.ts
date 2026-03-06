@@ -73,7 +73,7 @@ app.get('/api/trainerize/client/:id/summary', async (req, res) => {
 // Get training plans for a client
 app.get('/api/trainerize/client/:id/plans', async (req, res) => {
     try {
-        const result = await tz.getTrainingPlanList(req.params.id);
+        const result = await tz.getTrainingPlanList(parseInt(req.params.id));
         res.json(result);
     } catch (err: any) {
         res.status(500).json({ ok: false, error: err.message });
@@ -85,7 +85,7 @@ app.get('/api/trainerize/client/:id/calendar', async (req, res) => {
     try {
         const start = req.query.start as string || new Date().toISOString().split('T')[0];
         const end = req.query.end as string || new Date(Date.now() + 28 * 86400000).toISOString().split('T')[0];
-        const result = await tz.getCalendarList(req.params.id, start, end);
+        const result = await tz.getCalendarList(parseInt(req.params.id), start, end);
         res.json(result);
     } catch (err: any) {
         res.status(500).json({ ok: false, error: err.message });
@@ -95,7 +95,7 @@ app.get('/api/trainerize/client/:id/calendar', async (req, res) => {
 // Get workout definitions for a training plan
 app.get('/api/trainerize/plan/:id/workouts', async (req, res) => {
     try {
-        const result = await tz.getWorkoutDefListForPlan(req.params.id);
+        const result = await tz.getWorkoutDefListForPlan(parseInt(req.params.id));
         res.json(result);
     } catch (err: any) {
         res.status(500).json({ ok: false, error: err.message });
@@ -148,7 +148,7 @@ app.post('/api/trainerize/workout/create', async (req, res) => {
 app.post('/api/trainerize/calendar/schedule', async (req, res) => {
     try {
         const { trainerID, dailyWorkouts } = req.body;
-        const result = await tz.scheduleDailyWorkout(trainerID, dailyWorkouts);
+        const result = await tz.scheduleDailyWorkout({ userID: trainerID, dailyWorkouts });
         res.json(result);
     } catch (err: any) {
         res.status(500).json({ ok: false, error: err.message });
@@ -181,7 +181,7 @@ app.get('/api/trainerize/messages', async (req, res) => {
 app.post('/api/trainerize/messages/reply', async (req, res) => {
     try {
         const { threadId, body } = req.body;
-        const result = await tz.replyToMessage(threadId, body);
+        const result = await tz.replyToMessage({ threadID: threadId, body });
         res.json(result);
     } catch (err: any) {
         res.status(500).json({ ok: false, error: err.message });
@@ -232,7 +232,7 @@ app.get('/api/trainerize/exercise/:id', async (req, res) => {
 app.get('/api/trainerize/programs', async (req, res) => {
     try {
         const type = (req.query.type as any) || 'all';
-        const result = await tz.getProgramList(type);
+        const result = await tz.getProgramList({ type });
         res.json(result);
     } catch (err: any) {
         res.status(500).json({ ok: false, error: err.message });
@@ -243,7 +243,7 @@ app.get('/api/trainerize/programs', async (req, res) => {
 app.post('/api/trainerize/program/assign', async (req, res) => {
     try {
         const { userId, programId, startDate } = req.body;
-        const result = await tz.addUserToProgram(userId, programId, startDate);
+        const result = await tz.addUserToProgram({ id: programId, userID: userId, startDate });
         res.json(result);
     } catch (err: any) {
         res.status(500).json({ ok: false, error: err.message });
@@ -375,10 +375,10 @@ app.post('/api/cases/analyze', async (req, res) => {
                 const users = searchResult?.data?.result || searchResult?.data?.users || [];
                 if (users.length > 0) {
                     const clientId = users[0].id;
-                    const plansRes = await tz.getTrainingPlanList(String(clientId));
+                    const plansRes = await tz.getTrainingPlanList(clientId);
                     const plans = plansRes?.data?.plans || [];
                     if (plans.length > 0) {
-                        const wdListRes = await tz.getWorkoutDefListForPlan(String(plans[0].id));
+                        const wdListRes = await tz.getWorkoutDefListForPlan(plans[0].id);
                         const wdEntries = wdListRes?.data?.workouts || [];
                         if (wdEntries.length > 0) {
                             const allIds = wdEntries.map((w: any) => w.id);
@@ -550,7 +550,7 @@ app.post('/api/cases/:id/execute', async (req, res) => {
         if (client && analysis.actions?.length) {
             // Pre-load planId for workout creation
             try {
-                const plansRes = await tz.getTrainingPlanList(String(client.id));
+                const plansRes = await tz.getTrainingPlanList(client.id);
                 const plans = plansRes?.data?.plans || [];
                 if (plans.length > 0) planId = plans[0].id;
             } catch { }
@@ -605,14 +605,14 @@ app.post('/api/cases/:id/execute', async (req, res) => {
                         }
 
                         // ── Load ALL workout definitions from training plan ──
-                        const plansRes = await tz.getTrainingPlanList(String(client.id));
+                        const plansRes = await tz.getTrainingPlanList(client.id);
                         const plans = plansRes?.data?.plans || [];
                         const plan = plans[0];
 
                         let allWorkoutDefs: any[] = [];
 
                         if (plan) {
-                            const wdListRes = await tz.getWorkoutDefListForPlan(String(plan.id));
+                            const wdListRes = await tz.getWorkoutDefListForPlan(plan.id);
                             const wdEntries = wdListRes?.data?.workouts || [];
                             if (wdEntries.length > 0) {
                                 // Load all full workout defs at once
@@ -785,7 +785,7 @@ app.post('/api/cases/:id/execute', async (req, res) => {
             try {
                 const noteContent = `[Ärende] ${analysis.summary}\n\nResonemang: ${analysis.reasoning}\n\nÅtgärder: ${analysis.actions?.map((a: any) => a.description).join(', ') || 'Inga'}`;
                 await tz.addTrainerNote({
-                    clientID: client.id,
+                    userID: client.id,
                     content: noteContent,
                     type: 'general',
                 });
@@ -799,7 +799,7 @@ app.post('/api/cases/:id/execute', async (req, res) => {
         if (client && analysis.clientMessage) {
             try {
                 await tz.sendMessage({
-                    senderID: client.trainerID || 4452827,
+                    userID: client.trainerID || 4452827,
                     recipients: [client.id],
                     subject: 'Uppdatering av ditt träningsprogram',
                     body: analysis.clientMessage,
