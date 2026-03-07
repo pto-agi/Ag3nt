@@ -46,8 +46,8 @@ app.get('/api/auth/me', async (req, res) => {
         const { data: { user }, error } = await userClient.auth.getUser();
         if (error || !user) return res.status(401).json({ ok: false, error: 'Invalid token' });
 
-        // Check is_manager from profiles
-        const { data: profile } = await supabase
+        // Check is_manager from profiles (use userClient so RLS allows reading own profile)
+        const { data: profile } = await userClient
             .from('profiles')
             .select('full_name, email, is_manager, is_staff')
             .eq('id', user.id)
