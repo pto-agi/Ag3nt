@@ -870,7 +870,7 @@ app.post('/api/cases/:id/execute', async (req, res) => {
                         const msgContent = action.params?.messageContent || action.description;
                         try {
                             await tz.sendMessage({
-                                userID: client.trainerID || 4452827,
+                                userID: TZ_TRAINER_ID,
                                 recipients: [client.id],
                                 subject: 'Meddelande från din tränare',
                                 body: msgContent,
@@ -957,7 +957,7 @@ app.post('/api/cases/:id/execute', async (req, res) => {
         if (client && analysis.clientMessage && !primaryActionFailed) {
             try {
                 await tz.sendMessage({
-                    userID: client.trainerID || 4452827,
+                    userID: TZ_TRAINER_ID,
                     recipients: [client.id],
                     subject: 'Uppdatering av ditt träningsprogram',
                     body: analysis.clientMessage,
