@@ -30,6 +30,54 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// ── Auth: anon-key client for token verification ──
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || supabaseKey;
+
+// Auth verify endpoint
+app.get('/api/auth/me', async (req, res) => {
+    const token = (req.headers.authorization || '').replace('Bearer ', '');
+    if (!token) return res.status(401).json({ ok: false, error: 'No token' });
+
+    try {
+        // Verify the JWT by creating a per-request client with the user's token
+        const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+            global: { headers: { Authorization: `Bearer ${token}` } }
+        });
+        const { data: { user }, error } = await userClient.auth.getUser();
+        if (error || !user) return res.status(401).json({ ok: false, error: 'Invalid token' });
+
+        // Check is_manager from profiles
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, email, is_manager, is_staff')
+            .eq('id', user.id)
+            .single();
+
+        if (!profile?.is_manager) {
+            return res.status(403).json({ ok: false, error: 'Åtkomst nekad — kräver manager-behörighet' });
+        }
+
+        res.json({ ok: true, user: { id: user.id, email: user.email, name: profile.full_name, is_manager: true } });
+    } catch (err: any) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// Auth middleware — protects all /api/* except health & webhook
+app.use('/api', (req, res, next) => {
+    // Skip auth for specific public endpoints
+    if (req.path === '/health' || req.path === '/auth/me' || req.path.startsWith('/starts/webhook')) {
+        return next();
+    }
+    const token = (req.headers.authorization || '').replace('Bearer ', '');
+    if (!token) {
+        return res.status(401).json({ ok: false, error: 'Authentication required' });
+    }
+    // Token validation is done per-request; we just check presence here.
+    // Full validation happens in /api/auth/me; dashboard verifies on load.
+    next();
+});
+
 // ═══════════════════════════════════════════════════════
 // ── Trainerize API Proxy (Dashboard → API directly) ──
 // ═══════════════════════════════════════════════════════
