@@ -4,8 +4,9 @@
   "description": "AntiGravity Agent – AI-powered fitness coaching automation via Trainerize API",
   "type": "module",
   "scripts": {
-    "start": "tsx src/server.ts",
+    "start": "node dist/server.js",
     "dev": "tsx src/server.ts",
+    "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

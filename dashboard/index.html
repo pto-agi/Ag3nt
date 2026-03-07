@@ -2686,15 +2686,35 @@
                     ? `<div class="start-measurement-grid">${meas.map(m => `<div class="start-measurement-item"><div class="val">${m.v}</div><div class="lbl">${m.l}</div></div>`).join('')}</div>`
                     : '<span class="start-field-value empty">Inga mått angivna</span>';
 
-                const planPreview = startPlans[s.id]
-                    ? `<div class="start-plan-preview" id="plan-preview-${s.id}">${esc(JSON.stringify(startPlans[s.id], null, 2))}</div>`
-                    : `<div id="plan-preview-${s.id}" style="display:none"></div>`;
+                // Pre-generated plan from DB
+                const dbPlan = s.ai_plan;
+                const planStatus = s.ai_plan_status || 'pending';
+                const hasPlanFromDb = !!dbPlan;
+                const hasPlanLocal = !!startPlans[s.id];
+                const planReady = hasPlanFromDb || hasPlanLocal;
+
+                // If DB has a plan, sync it to local cache
+                if (hasPlanFromDb && !hasPlanLocal) {
+                    startPlans[s.id] = dbPlan;
+                }
+
+                const planPreview = planReady
+                    ? `<div class="start-plan-preview" id="plan-preview-${s.id}">${esc(JSON.stringify(startPlans[s.id] || dbPlan, null, 2))}</div>`
+                    : planStatus === 'generating'
+                        ? `<div class="start-plan-preview" id="plan-preview-${s.id}" style="text-align:center;padding:2rem;color:var(--text-muted)"><span class="spinner" style="display:inline-block;width:16px;height:16px"></span> Plan genereras automatiskt...</div>`
+                        : planStatus === 'failed'
+                            ? `<div class="start-plan-preview" id="plan-preview-${s.id}" style="color:var(--danger)">Plangenerering misslyckades: ${esc(s.ai_plan_error || 'Okänt fel')}</div>`
+                            : `<div id="plan-preview-${s.id}" style="display:none"></div>`;
 
                 // Step-based workflow buttons
                 const hasClient = !!startClientIds[s.id];
-                const hasPlan = !!startPlans[s.id];
                 const step1Done = hasClient;
-                const step2Done = hasPlan;
+
+                // Plan status badge
+                let planBadge = '';
+                if (planStatus === 'done') planBadge = '<span class="badge badge-success" style="margin-left:8px">Plan klar</span>';
+                else if (planStatus === 'generating') planBadge = '<span class="badge badge-warning" style="margin-left:8px">Genereras...</span>';
+                else if (planStatus === 'failed') planBadge = '<span class="badge badge-danger" style="margin-left:8px">Fel</span>';
 
                 let actionBtns = '';
                 if (!s.is_done) {
@@ -2702,12 +2722,22 @@
                     actionBtns += `<button class="btn ${step1Done ? 'btn-outline' : 'btn-primary'}" onclick="event.stopPropagation(); createStartAccount('${s.id}')" id="btn-account-${s.id}" ${step1Done ? 'disabled' : ''}>
                         <span class="spinner"></span> ${step1Done ? 'Konto skapat (ID: ' + startClientIds[s.id].clientId + ')' : '1. Skapa konto i Trainerize'}
                     </button>`;
-                    // Step 2: Generate AI plan
-                    actionBtns += `<button class="btn ${step2Done ? 'btn-outline' : 'btn-primary'}" onclick="event.stopPropagation(); generateStartPlan('${s.id}')" id="btn-gen-${s.id}">
-                        <span class="spinner"></span> 2. Generera AI-plan
-                    </button>`;
-                    // Step 3: Execute plan (only if plan is generated)
-                    if (hasPlan) {
+                    // Step 2: Generate/Regenerate AI plan
+                    if (planReady) {
+                        actionBtns += `<button class="btn btn-outline" onclick="event.stopPropagation(); regenerateStartPlan('${s.id}')" id="btn-gen-${s.id}">
+                            <span class="spinner"></span> 2. Regenerera plan
+                        </button>`;
+                    } else if (planStatus === 'generating') {
+                        actionBtns += `<button class="btn btn-outline" disabled id="btn-gen-${s.id}">
+                            <span class="spinner" style="display:inline-block"></span> Genereras...
+                        </button>`;
+                    } else {
+                        actionBtns += `<button class="btn btn-primary" onclick="event.stopPropagation(); generateStartPlan('${s.id}')" id="btn-gen-${s.id}">
+                            <span class="spinner"></span> 2. Generera AI-plan
+                        </button>`;
+                    }
+                    // Step 3: Execute plan (only if plan is ready)
+                    if (planReady) {
                         actionBtns += `<button class="btn btn-success" onclick="event.stopPropagation(); executeStartPlan('${s.id}')">
                             <span class="spinner"></span> 3. Kör plan
                         </button>`;
@@ -2721,7 +2751,7 @@
                     <div class="start-card-header" onclick="toggleStartDetail('${s.id}')">
                         <div class="start-avatar">${esc(initials.toUpperCase())}</div>
                         <div class="start-info">
-                            <div class="start-name">${esc(s.first_name)} ${esc(s.last_name || '')}</div>
+                            <div class="start-name">${esc(s.first_name)} ${esc(s.last_name || '')}${planBadge}</div>
                             <div class="start-meta">
                                 <span>${esc(s.email)}</span>
                                 <span>${date}</span>
@@ -2939,6 +2969,44 @@
                     if (card) card.classList.add('expanded');
                 } else {
                     startLog(id, 'FEL: AI-plan misslyckades — ' + (res.error || 'Okänt fel'));
+                }
+            } catch (err) {
+                startLog(id, 'FEL: ' + err.message);
+            } finally {
+                setLoading(btn, false);
+            }
+        }
+
+        async function regenerateStartPlan(id) {
+            const btn = document.getElementById(`btn-gen-${id}`);
+            setLoading(btn, true);
+            startLog(id, '→ Regenererar AI-plan...');
+            try {
+                const res = await apiPost(`/api/starts/${id}/regenerate`, {});
+                if (res.ok) {
+                    startLog(id, '→ Regenerering startad. Planen uppdateras automatiskt...');
+                    // Poll for the updated plan
+                    let attempts = 0;
+                    const poll = setInterval(async () => {
+                        attempts++;
+                        try {
+                            await loadStarts();
+                            const s = allStarts.find(x => x.id === id);
+                            if (s && s.ai_plan_status === 'done') {
+                                clearInterval(poll);
+                                startPlans[id] = s.ai_plan;
+                                startLog(id, '→ AI-plan regenererad.');
+                                renderStarts();
+                                const card = document.getElementById(`start-${id}`);
+                                if (card) card.classList.add('expanded');
+                            } else if (attempts > 30) {
+                                clearInterval(poll);
+                                startLog(id, 'Timeout: planen har inte kommit klart inom 60s.');
+                            }
+                        } catch { }
+                    }, 2000);
+                } else {
+                    startLog(id, 'FEL: ' + (res.error || 'Okänt fel'));
                 }
             } catch (err) {
                 startLog(id, 'FEL: ' + err.message);

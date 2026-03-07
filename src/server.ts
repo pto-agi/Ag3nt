@@ -398,7 +398,34 @@ interface CaseRecord {
     executionResult?: any;
 }
 
-const cases = new Map<string, CaseRecord>();
+// Helper: save case to Supabase
+async function saveCase(c: CaseRecord) {
+    await supabase.rpc('upsert_case', {
+        case_id: c.id,
+        case_text: c.text,
+        case_analysis: c.analysis,
+        case_status: c.status,
+        case_created_at: c.createdAt,
+        case_executed_at: c.executedAt || null,
+        case_execution_result: c.executionResult || null,
+    });
+}
+
+// Helper: load case from Supabase
+async function loadCase(id: string): Promise<CaseRecord | null> {
+    const { data } = await supabase.rpc('get_case', { case_id: id });
+    if (!data || (Array.isArray(data) && data.length === 0)) return null;
+    const row = Array.isArray(data) ? data[0] : data;
+    return {
+        id: row.id,
+        text: row.text,
+        analysis: row.analysis,
+        status: row.status,
+        createdAt: row.created_at,
+        executedAt: row.executed_at,
+        executionResult: row.execution_result,
+    };
+}
 
 // Analyze a free-text case request
 app.post('/api/cases/analyze', async (req, res) => {
@@ -473,7 +500,7 @@ app.post('/api/cases/analyze', async (req, res) => {
             status: 'pending',
             createdAt: new Date().toISOString(),
         };
-        cases.set(id, caseRecord);
+        await saveCase(caseRecord);
 
         res.json({ ok: true, data: caseRecord });
     } catch (err: any) {
@@ -483,11 +510,22 @@ app.post('/api/cases/analyze', async (req, res) => {
 });
 
 // List all cases
-app.get('/api/cases', (_req, res) => {
-    const list = Array.from(cases.values()).sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-    res.json({ ok: true, data: list });
+app.get('/api/cases', async (_req, res) => {
+    try {
+        const { data } = await supabase.rpc('list_cases');
+        const list = (data || []).map((row: any) => ({
+            id: row.id,
+            text: row.text,
+            analysis: row.analysis,
+            status: row.status,
+            createdAt: row.created_at,
+            executedAt: row.executed_at,
+            executionResult: row.execution_result,
+        }));
+        res.json({ ok: true, data: list });
+    } catch (err: any) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
 });
 
 // ── Helper functions for workout matching and saving ──
@@ -557,7 +595,7 @@ async function saveWorkout(workout: any, exercises: any[]) {
 // Execute (approve) a case
 app.post('/api/cases/:id/execute', async (req, res) => {
     try {
-        const caseRecord = cases.get(req.params.id);
+        const caseRecord = await loadCase(req.params.id);
         if (!caseRecord) {
             return res.status(404).json({ ok: false, error: 'Case not found' });
         }
@@ -591,14 +629,32 @@ app.post('/api/cases/:id/execute', async (req, res) => {
         // (Trainerize API requires at least 1 exercise when creating a workout)
         const pendingWorkouts = new Map<string, { name: string; exercises: any[]; steps: Array<{ step: string; status: string; detail: string }> }>();
         let planId: number | null = null;
+        let primaryActionFailed = false; // Track if exercise-related actions failed
 
         if (client && analysis.actions?.length) {
-            // Pre-load planId for workout creation
+            // Pre-load planId for workout creation — auto-create if missing
             try {
                 const plansRes = await tz.getTrainingPlanList(client.id);
                 const plans = plansRes?.data?.plans || [];
-                if (plans.length > 0) planId = plans[0].id;
-            } catch { }
+                if (plans.length > 0) {
+                    planId = plans[0].id;
+                } else {
+                    // No training plan exists — create one
+                    logger.info({ clientId: client.id, step: 'execute' }, 'No training plan found, creating one');
+                    const createPlanRes = await tz.addTrainingPlan(client.id, {
+                        name: `Träningsprogram — ${client.firstName || 'Klient'}`,
+                    });
+                    planId = createPlanRes?.data?.trainingPlan?.id || createPlanRes?.data?.id || null;
+                    if (planId) {
+                        steps.push({ step: 'Skapa träningsprogram', status: 'ok', detail: `Nytt program skapat (ID: ${planId})` });
+                    } else {
+                        steps.push({ step: 'Skapa träningsprogram', status: 'error', detail: 'Kunde inte skapa träningsprogram' });
+                        logger.error({ response: JSON.stringify(createPlanRes?.data).slice(0, 300), step: 'execute' }, 'Failed to create training plan');
+                    }
+                }
+            } catch (err: any) {
+                steps.push({ step: 'Ladda träningsprogram', status: 'error', detail: err.message });
+            }
 
             for (const action of analysis.actions) {
                 try {
@@ -606,7 +662,8 @@ app.post('/api/cases/:id/execute', async (req, res) => {
                     if (action.type === 'create_workout') {
                         const wName = action.params?.workoutName || action.description;
                         if (!planId) {
-                            steps.push({ step: action.description, status: 'error', detail: 'Inget träningsprogram hittades' });
+                            steps.push({ step: action.description, status: 'error', detail: 'Inget träningsprogram kunde skapas' });
+                            primaryActionFailed = true;
                             continue;
                         }
                         pendingWorkouts.set(wName.toLowerCase(), { name: wName, exercises: [], steps: [] });
@@ -668,7 +725,28 @@ app.post('/api/cases/:id/execute', async (req, res) => {
                         }
 
                         if (!allWorkoutDefs.length) {
-                            steps.push({ step: action.description, status: 'warn', detail: 'Kunde inte hitta något pass i träningsprogrammet' });
+                            // No workouts exist — auto-create one based on the target workout name or exercise type
+                            if (planId && action.type === 'add_exercise') {
+                                const wName = targetWorkout || 'Pass 1';
+                                logger.info({ workoutName: wName, step: 'execute' }, 'No workouts found, auto-creating workout');
+                                // Buffer it as a pending workout and add the exercise
+                                pendingWorkouts.set(wName.toLowerCase(), { name: wName, exercises: [], steps: [] });
+                                steps.push({ step: `Skapa pass "${wName}"`, status: 'ok', detail: `Inga pass hittades — skapar nytt pass "${wName}"` });
+
+                                // Now add the exercise to this pending workout
+                                const match = await searchExerciseByName(exerciseName);
+                                if (match) {
+                                    const pw = pendingWorkouts.get(wName.toLowerCase())!;
+                                    pw.exercises.push({ def: { id: match.id, sets: 3, target: '10', restTime: 90, recordType: 'strength', supersetType: 'none' } });
+                                    steps.push({ step: action.description, status: 'ok', detail: `"${match.name}" tillagd i nytt pass "${wName}"` });
+                                } else {
+                                    steps.push({ step: action.description, status: 'error', detail: `Övningen "${exerciseName}" hittades inte i biblioteket` });
+                                    primaryActionFailed = true;
+                                }
+                                continue;
+                            }
+                            steps.push({ step: action.description, status: 'error', detail: 'Inga pass i träningsprogrammet — kan inte utföra åtgärden' });
+                            primaryActionFailed = true;
                             continue;
                         }
 
@@ -774,8 +852,35 @@ app.post('/api/cases/:id/execute', async (req, res) => {
                             }
                         }
 
+                    } else if (action.type === 'add_note' && client) {
+                        // Execute add_note action
+                        const noteContent = action.params?.noteContent || action.description;
+                        try {
+                            await tz.addTrainerNote({
+                                userID: client.id,
+                                content: noteContent,
+                                type: 'general',
+                            });
+                            steps.push({ step: action.description, status: 'ok', detail: 'Tränarnote tillagd' });
+                        } catch (noteErr: any) {
+                            steps.push({ step: action.description, status: 'error', detail: noteErr.message });
+                        }
+                    } else if (action.type === 'send_message' && client) {
+                        // Execute send_message action
+                        const msgContent = action.params?.messageContent || action.description;
+                        try {
+                            await tz.sendMessage({
+                                userID: client.trainerID || 4452827,
+                                recipients: [client.id],
+                                subject: 'Meddelande från din tränare',
+                                body: msgContent,
+                            });
+                            steps.push({ step: action.description, status: 'ok', detail: 'Meddelande skickat' });
+                        } catch (msgErr: any) {
+                            steps.push({ step: action.description, status: 'error', detail: msgErr.message });
+                        }
                     } else {
-                        // Non-exercise actions (add_note, send_message, etc.) — handled below or log as info
+                        // Unknown action type — log as info
                         steps.push({ step: action.description, status: 'ok', detail: 'Åtgärd noterad' });
                     }
                 } catch (err: any) {
@@ -825,10 +930,16 @@ app.post('/api/cases/:id/execute', async (req, res) => {
             }
         }
 
-        // Step 2: Add trainer note documenting the change
-        if (client) {
+        // Step 2: Add trainer note documenting the change (only if primary actions succeeded)
+        if (client && !primaryActionFailed) {
             try {
-                const noteContent = `[Ärende] ${analysis.summary}\n\nResonemang: ${analysis.reasoning}\n\nÅtgärder: ${analysis.actions?.map((a: any) => a.description).join(', ') || 'Inga'}`;
+                // Build compact note from actual executed steps (not the full AI reasoning)
+                const today = new Date().toISOString().slice(0, 10);
+                const executedActions = steps
+                    .filter(s => s.status === 'ok' && s.step !== 'Hitta klient' && s.step !== 'Tränarnote' && s.step !== 'Klientmeddelande' && s.step !== 'Skapa träningsprogram')
+                    .map(s => `• ${s.detail || s.step}`)
+                    .join('\n');
+                const noteContent = `[${today}] ${analysis.summary}\n${executedActions}`;
                 await tz.addTrainerNote({
                     userID: client.id,
                     content: noteContent,
@@ -838,10 +949,12 @@ app.post('/api/cases/:id/execute', async (req, res) => {
             } catch (err: any) {
                 steps.push({ step: 'Tränarnote', status: 'error', detail: err.message });
             }
+        } else if (primaryActionFailed) {
+            steps.push({ step: 'Tränarnote', status: 'skipped', detail: 'Hoppade över — primära åtgärder misslyckades' });
         }
 
-        // Step 3: Send confirmation message to client
-        if (client && analysis.clientMessage) {
+        // Step 3: Send confirmation message to client (only if primary actions succeeded)
+        if (client && analysis.clientMessage && !primaryActionFailed) {
             try {
                 await tz.sendMessage({
                     userID: client.trainerID || 4452827,
@@ -853,30 +966,40 @@ app.post('/api/cases/:id/execute', async (req, res) => {
             } catch (err: any) {
                 steps.push({ step: 'Klientmeddelande', status: 'error', detail: err.message });
             }
+        } else if (primaryActionFailed) {
+            steps.push({ step: 'Klientmeddelande', status: 'skipped', detail: 'Hoppade över — primära åtgärder misslyckades' });
         }
 
-        const hasErrors = steps.some(s => s.status === 'error');
+        const hasErrors = steps.some(s => s.status === 'error') || primaryActionFailed;
         caseRecord.status = hasErrors ? 'failed' : 'completed';
         caseRecord.executedAt = new Date().toISOString();
         caseRecord.executionResult = { steps, ok: !hasErrors };
 
         logger.info({ caseId: caseRecord.id, status: caseRecord.status, step: 'cases' }, 'Case execution complete');
+        await saveCase(caseRecord);
         res.json({ ok: true, data: caseRecord });
     } catch (err: any) {
-        const caseRecord = cases.get(req.params.id);
-        if (caseRecord) caseRecord.status = 'failed';
+        // Mark as failed in DB
+        try {
+            const failedCase = await loadCase(req.params.id);
+            if (failedCase) {
+                failedCase.status = 'failed';
+                await saveCase(failedCase);
+            }
+        } catch { }
         logger.error({ error: err.message, step: 'cases' }, 'Case execution failed');
         res.status(500).json({ ok: false, error: err.message });
     }
 });
 
 // Reject a case
-app.post('/api/cases/:id/reject', (req, res) => {
-    const caseRecord = cases.get(req.params.id);
+app.post('/api/cases/:id/reject', async (req, res) => {
+    const caseRecord = await loadCase(req.params.id);
     if (!caseRecord) {
         return res.status(404).json({ ok: false, error: 'Case not found' });
     }
     caseRecord.status = 'rejected';
+    await saveCase(caseRecord);
     res.json({ ok: true, data: caseRecord });
 });
 
@@ -1067,6 +1190,166 @@ app.post('/api/inbox/:id/dismiss', async (req, res) => {
     } catch (err: any) {
         logger.error({ error: err.message, step: 'inbox-dismiss' }, 'Failed to dismiss');
         res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// ═══════════════════════════════════════════════
+// ── Health Check ──
+// ═══════════════════════════════════════════════
+
+const startTime = Date.now();
+
+app.get('/api/health', (_req, res) => {
+    res.json({
+        status: 'ok',
+        version: '3.0.0',
+        uptime: Math.floor((Date.now() - startTime) / 1000),
+        env: process.env.NODE_ENV || 'development',
+    });
+});
+
+// ═══════════════════════════════════════════════
+// ── Starts Webhook (auto-generate AI plan) ──
+// ═══════════════════════════════════════════════
+
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
+
+app.post('/api/starts/webhook', async (req, res) => {
+    // Validate secret
+    const authHeader = req.headers['x-webhook-secret'] || req.headers['authorization'];
+    if (WEBHOOK_SECRET && authHeader !== WEBHOOK_SECRET && authHeader !== `Bearer ${WEBHOOK_SECRET}`) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    }
+
+    const { record, id } = req.body;
+    const s = record || req.body;
+    const startId = id || s?.id;
+
+    if (!startId) {
+        return res.status(400).json({ ok: false, error: 'Missing start ID' });
+    }
+
+    logger.info({ startId, step: 'starts-webhook' }, 'Auto-generating AI plan for new start');
+
+    // Update status to "generating"
+    try {
+        await supabase.rpc('update_startformular_plan', {
+            start_id: startId,
+            new_status: 'generating',
+            plan_data: null,
+            error_msg: null,
+        });
+    } catch { }
+
+    // Respond immediately — generation continues async
+    res.json({ ok: true, message: 'Plan generation started' });
+
+    // Generate plan in background
+    try {
+        // Map startformulär → ClientIntakeData
+        const intake = {
+            firstName: s.first_name || 'Klient',
+            lastName: s.last_name || '',
+            email: s.email || '',
+            age: s.age || undefined,
+            goals: [
+                s.goal_description || '',
+                (s.focus_areas || []).length ? `Fokus: ${s.focus_areas.join(', ')}` : '',
+            ].filter(Boolean).join('\n'),
+            experience: s.training_experience || '',
+            daysPerWeek: parseInt(s.sessions_per_week) || undefined,
+            injuries: s.injuries || '',
+            equipment: [
+                (s.training_places || []).length ? `Platser: ${s.training_places.join(', ')}` : '',
+                s.training_places_other ? `Annat: ${s.training_places_other}` : '',
+            ].filter(Boolean).join(', ') || undefined,
+            preferences: [
+                (s.training_forms || []).length ? `Träningsformer: ${s.training_forms.join(', ')}` : '',
+                s.training_forms_other ? `Annat: ${s.training_forms_other}` : '',
+            ].filter(Boolean).join(', ') || undefined,
+            additionalInfo: [
+                s.weight_kg ? `Vikt: ${s.weight_kg} kg` : '',
+                s.height_cm ? `Längd: ${s.height_cm} cm` : '',
+                s.activity_last_6_months ? `Aktivitet senaste 6 mån: ${s.activity_last_6_months}` : '',
+                s.diet_last_6_months ? `Kost senaste 6 mån: ${s.diet_last_6_months}` : '',
+            ].filter(Boolean).join('\n') || undefined,
+        };
+
+        const plan = await aiTrainer.generateOnboardingProgram(intake);
+
+        // Store plan in DB
+        await supabase.rpc('update_startformular_plan', {
+            start_id: startId,
+            new_status: 'done',
+            plan_data: plan,
+            error_msg: null,
+        });
+
+        logger.info({ startId, workouts: plan.workouts?.length, step: 'starts-webhook' }, 'AI plan generated and stored');
+    } catch (err: any) {
+        logger.error({ startId, error: err.message, step: 'starts-webhook' }, 'AI plan generation failed');
+        try {
+            await supabase.rpc('update_startformular_plan', {
+                start_id: startId,
+                new_status: 'failed',
+                plan_data: null,
+                error_msg: err.message,
+            });
+        } catch { }
+    }
+});
+
+// ═══════════════════════════════════════════════
+// ── Regenerate AI plan (manual trigger) ──
+// ═══════════════════════════════════════════════
+
+app.post('/api/starts/:id/regenerate', async (req, res) => {
+    const { id } = req.params;
+
+    // Fetch the start record
+    const { data: starts } = await supabase.rpc('get_all_startformular');
+    const s = (starts || []).find((r: any) => r.id === id);
+    if (!s) return res.status(404).json({ ok: false, error: 'Start not found' });
+
+    // Trigger webhook handler logic by forwarding
+    logger.info({ startId: id, step: 'starts-regenerate' }, 'Manual AI plan regeneration');
+    res.json({ ok: true, message: 'Regeneration started' });
+
+    // Same as webhook — run async
+    try {
+        await supabase.rpc('update_startformular_plan', {
+            start_id: id, new_status: 'generating', plan_data: null, error_msg: null,
+        });
+
+        const intake = {
+            firstName: s.first_name || 'Klient',
+            lastName: s.last_name || '',
+            email: s.email || '',
+            age: s.age || undefined,
+            goals: [s.goal_description || '', (s.focus_areas || []).length ? `Fokus: ${s.focus_areas.join(', ')}` : ''].filter(Boolean).join('\n'),
+            experience: s.training_experience || '',
+            daysPerWeek: parseInt(s.sessions_per_week) || undefined,
+            injuries: s.injuries || '',
+            equipment: (s.training_places || []).join(', ') || undefined,
+            preferences: (s.training_forms || []).join(', ') || undefined,
+            additionalInfo: [
+                s.weight_kg ? `Vikt: ${s.weight_kg} kg` : '', s.height_cm ? `Längd: ${s.height_cm} cm` : '',
+                s.activity_last_6_months ? `Aktivitet: ${s.activity_last_6_months}` : '',
+            ].filter(Boolean).join('\n') || undefined,
+        };
+
+        const plan = await aiTrainer.generateOnboardingProgram(intake);
+        await supabase.rpc('update_startformular_plan', {
+            start_id: id, new_status: 'done', plan_data: plan, error_msg: null,
+        });
+        logger.info({ startId: id, step: 'starts-regenerate' }, 'Plan regenerated');
+    } catch (err: any) {
+        logger.error({ startId: id, error: err.message, step: 'starts-regenerate' }, 'Regeneration failed');
+        try {
+            await supabase.rpc('update_startformular_plan', {
+                start_id: id, new_status: 'failed', plan_data: null, error_msg: err.message,
+            });
+        } catch { }
     }
 });
 

@@ -131,9 +131,9 @@ export async function executeOnboarding(input: ExecuteOnboardingInput): Promise<
                             target: ex.reps,
                             restTime: ex.restSeconds,
                             recordType: 'Strength',
-                            supersetType: 'none',
+                            supersetType: 'none' as const,
                             superSetID: 0,
-                            side: null,
+                            side: null as 'left' | 'right' | null,
                         },
                     };
                 });
