@@ -843,13 +843,316 @@
             margin-bottom: 12px;
             line-height: 1.5;
         }
+
+        /* ─── Starts ─── */
+        .starts-stats {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .starts-stat {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 24px;
+            flex: 1;
+            text-align: center;
+        }
+
+        .starts-stat .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .starts-stat .stat-value.pending {
+            color: var(--warning);
+        }
+
+        .starts-stat .stat-value.done {
+            color: var(--success);
+        }
+
+        .starts-filter-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .starts-filter-bar h3 {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .starts-filter-bar .filter-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .starts-filter-bar .filter-btn {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .starts-filter-bar .filter-btn.active {
+            background: rgba(88, 166, 255, 0.15);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .start-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 12px;
+            transition: all 0.3s;
+            overflow: hidden;
+        }
+
+        .start-card:hover {
+            border-color: rgba(88, 166, 255, 0.3);
+        }
+
+        .start-card.expanded {
+            border-color: var(--accent);
+            box-shadow: var(--glow);
+        }
+
+        .start-card-header {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            cursor: pointer;
+            gap: 16px;
+        }
+
+        .start-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f0883e, #d29922);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+            flex-shrink: 0;
+            color: white;
+        }
+
+        .start-card.is-done .start-avatar {
+            background: linear-gradient(135deg, #3fb950, #2ea043);
+        }
+
+        .start-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .start-name {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .start-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .start-preview {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 500px;
+        }
+
+        .start-badge {
+            font-size: 11px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .start-badge.pending {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+
+        .start-badge.done {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .start-detail {
+            display: none;
+            padding: 0 20px 20px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .start-card.expanded .start-detail {
+            display: block;
+        }
+
+        .start-section {
+            margin-bottom: 16px;
+        }
+
+        .start-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .start-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 24px;
+        }
+
+        .start-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .start-field-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .start-field-value {
+            font-size: 13px;
+            color: var(--text-primary);
+            margin-top: 2px;
+        }
+
+        .start-field-value.empty {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .start-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+
+        .start-tag {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            background: rgba(88, 166, 255, 0.1);
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .start-text-block {
+            background: var(--bg-input);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            border-left: 3px solid var(--accent);
+        }
+
+        .start-actions-bar {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .start-plan-preview {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            margin-top: 12px;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .start-measurement-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .start-measurement-item {
+            background: var(--bg-input);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            text-align: center;
+        }
+
+        .start-measurement-item .val {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .start-measurement-item .lbl {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 700px) {
+            .start-fields {
+                grid-template-columns: 1fr;
+            }
+
+            .start-measurement-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .starts-stats {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 
 <body>
     <header class="header">
         <div class="header-left">
-            <div class="logo">⚡</div>
+            <div class="logo">AG</div>
             <h1>AntiGravity Agent</h1>
         </div>
         <div class="header-status">
@@ -859,12 +1162,13 @@
     </header>
 
     <nav class="nav-tabs">
-        <button class="nav-tab active" onclick="switchTab('clients')">👥 Klienter</button>
-        <button class="nav-tab" onclick="switchTab('tools')">🔧 API Verktyg</button>
-        <button class="nav-tab" onclick="switchTab('messages')">💬 Meddelanden</button>
-        <button class="nav-tab" onclick="switchTab('cases')">📋 Ärenden</button>
-        <button class="nav-tab" onclick="switchTab('runs')">📊 Körningar</button>
-        <button class="nav-tab" onclick="switchTab('ai')">🧠 AI Agent</button>
+        <button class="nav-tab active" onclick="switchTab('clients')">Klienter</button>
+        <button class="nav-tab" onclick="switchTab('tools')">API Verktyg</button>
+        <button class="nav-tab" onclick="switchTab('messages')">Meddelanden</button>
+        <button class="nav-tab" onclick="switchTab('cases')">Ärenden</button>
+        <button class="nav-tab" onclick="switchTab('runs')">Körningar</button>
+        <button class="nav-tab" onclick="switchTab('ai')">AI Agent</button>
+        <button class="nav-tab" onclick="switchTab('starts')">Starts</button>
     </nav>
 
     <div class="main">
@@ -874,8 +1178,8 @@
             <div class="grid-2">
                 <div class="card">
                     <div class="card-header">
-                        <h2>👥 Klienter</h2>
-                        <button class="btn btn-outline" onclick="loadClients()">🔄 Ladda</button>
+                        <h2>Klienter</h2>
+                        <button class="btn btn-outline" onclick="loadClients()">Ladda</button>
                     </div>
                     <div style="padding: 8px 16px; border-bottom: 1px solid var(--border);">
                         <input type="text" class="form-input" id="clientSearch" placeholder="Sök namn eller e-post..."
@@ -883,7 +1187,7 @@
                     </div>
                     <div id="clientList" class="list-scroll">
                         <div class="empty-state">
-                            <div class="icon">👥</div>
+                            <div class="icon">—</div>
                             <p>Klicka "Ladda" för att hämta klienter</p>
                         </div>
                     </div>
@@ -892,22 +1196,22 @@
                 <div>
                     <div id="clientDetail" class="card">
                         <div class="card-header">
-                            <h2>📋 Klientinfo</h2>
+                            <h2>Klientinfo</h2>
                         </div>
                         <div class="card-body">
                             <div class="empty-state">
-                                <div class="icon">👈</div>
+                                <div class="icon">←</div>
                                 <p>Välj en klient</p>
                             </div>
                         </div>
                     </div>
                     <div id="clientActions" style="display:none;">
-                        <div class="section-label">⚡ Snabbåtgärder</div>
+                        <div class="section-label">Snabbåtgärder</div>
                         <div class="btn-group">
-                            <button class="btn btn-primary" onclick="viewClientCalendar()">📅 Kalender</button>
-                            <button class="btn btn-success" onclick="viewClientPlans()">📋 Planer</button>
-                            <button class="btn btn-purple" onclick="viewClientNotes()">📝 Noteringar</button>
-                            <button class="btn btn-warning" onclick="viewClientSummary()">📊 Sammanfattning</button>
+                            <button class="btn btn-primary" onclick="viewClientCalendar()">Kalender</button>
+                            <button class="btn btn-success" onclick="viewClientPlans()">Planer</button>
+                            <button class="btn btn-purple" onclick="viewClientNotes()">Noteringar</button>
+                            <button class="btn btn-warning" onclick="viewClientSummary()">Sammanfattning</button>
                         </div>
                         <div id="clientActionResult" class="result-box"></div>
                     </div>
@@ -918,7 +1222,7 @@
         <!-- ═══════ TAB: API Tools ═══════ -->
         <div id="tab-tools" class="tab-content">
             <div id="selectedClientBar" class="selected-client-bar" style="display:none;">
-                <span class="client-label">👤 <span id="barClientName">—</span> <small id="barClientId"
+                <span class="client-label"><span id="barClientName">—</span> <small id="barClientId"
                         style="color:var(--text-muted);font-weight:400"></small></span>
                 <button class="clear-btn" onclick="clearSelectedClient()">✕ Rensa</button>
             </div>
@@ -927,7 +1231,7 @@
 
                 <!-- Search Client -->
                 <div class="action-card">
-                    <h3>🔍 Sök Klient</h3>
+                    <h3>Sök Klient</h3>
                     <div class="form-group">
                         <input type="text" class="form-input" id="searchClientInput" placeholder="Namn eller e-post">
                     </div>
@@ -939,7 +1243,7 @@
 
                 <!-- Create Training Plan -->
                 <div class="action-card">
-                    <h3>📋 Skapa Träningsplan</h3>
+                    <h3>Skapa Träningsplan</h3>
                     <div class="form-group">
                         <label class="form-label">Klient-ID</label>
                         <input type="number" class="form-input client-id-field" id="planClientId"
@@ -971,7 +1275,7 @@
 
                 <!-- Send Message -->
                 <div class="action-card">
-                    <h3>💬 Skicka Meddelande</h3>
+                    <h3>Skicka Meddelande</h3>
                     <div class="form-group">
                         <label class="form-label">Mottagar-ID</label>
                         <input type="number" class="form-input client-id-field" id="msgRecipientId"
@@ -993,7 +1297,7 @@
 
                 <!-- Add Trainer Note -->
                 <div class="action-card">
-                    <h3>📝 Lägg Till Tränarnote</h3>
+                    <h3>Lägg Till Tränarnote</h3>
                     <div class="form-group">
                         <label class="form-label">Klient-ID</label>
                         <input type="number" class="form-input client-id-field" id="noteClientId"
@@ -1019,7 +1323,7 @@
 
                 <!-- Assign Program -->
                 <div class="action-card">
-                    <h3>🎯 Tilldela Program</h3>
+                    <h3>Tilldela Program</h3>
                     <div class="form-group">
                         <label class="form-label">Klient-ID</label>
                         <input type="number" class="form-input client-id-field" id="assignClientId"
@@ -1043,7 +1347,7 @@
 
                 <!-- Raw API Call -->
                 <div class="action-card">
-                    <h3>🛠️ Raw API-anrop</h3>
+                    <h3>Raw API-anrop</h3>
                     <div class="form-group">
                         <label class="form-label">Endpoint</label>
                         <input type="text" class="form-input" id="rawEndpoint" placeholder="/user/findUser">
@@ -1063,37 +1367,38 @@
 
         <!-- ═══════ TAB: Messages ═══════ -->
         <div id="tab-messages" class="tab-content">
-            <div class="grid-2">
-                <div class="card">
-                    <div class="card-header">
-                        <h2>💬 Inbox</h2>
-                        <button class="btn btn-outline" onclick="loadMessages()">🔄 Ladda</button>
-                    </div>
-                    <div id="messageList" class="list-scroll">
-                        <div class="empty-state">
-                            <div class="icon">💬</div>
-                            <p>Klicka "Ladda" för att hämta meddelanden</p>
-                        </div>
-                    </div>
+            <!-- Inbox stats -->
+            <div class="starts-stats" style="margin-bottom:20px">
+                <div class="stat-card">
+                    <div class="stat-number" id="inboxPending">-</div>
+                    <div class="stat-label">Ohanterade</div>
                 </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h2>↩️ Svara</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="form-group">
-                            <label class="form-label">Tråd-ID</label>
-                            <input type="number" class="form-input" id="replyThreadId" placeholder="Välj en tråd">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Svar</label>
-                            <textarea class="form-input" id="replyBody" placeholder="Skriv ditt svar..."></textarea>
-                        </div>
-                        <button class="btn btn-primary btn-block" onclick="replyToThread()">
-                            <span class="spinner"></span> Skicka Svar
-                        </button>
-                        <div id="replyResult" class="result-box"></div>
-                    </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="inboxHandled">-</div>
+                    <div class="stat-label">Hanterade</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="inboxTotal">-</div>
+                    <div class="stat-label">Totalt</div>
+                </div>
+            </div>
+            <!-- Filter bar -->
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+                <h3 style="margin:0">Inkorg</h3>
+                <div class="btn-group" id="inboxFilters">
+                    <button class="btn btn-primary btn-sm" onclick="filterInbox('pending')"
+                        data-filter="pending">Ohanterade</button>
+                    <button class="btn btn-outline btn-sm" onclick="filterInbox('all')" data-filter="all">Alla</button>
+                    <button class="btn btn-outline btn-sm" onclick="filterInbox('handled')"
+                        data-filter="handled">Hanterade</button>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="loadInbox()" style="margin-left:auto">Uppdatera</button>
+            </div>
+            <!-- Message list -->
+            <div id="inboxList">
+                <div class="empty-state">
+                    <div class="icon">--</div>
+                    <p>Laddar meddelanden...</p>
                 </div>
             </div>
         </div>
@@ -1102,35 +1407,35 @@
         <div id="tab-runs" class="tab-content">
             <div class="card" style="margin-bottom:20px;">
                 <div class="card-header">
-                    <h2>⚡ Kör Agent</h2>
+                    <h2>Kör Agent</h2>
                 </div>
                 <div class="card-body">
-                    <div class="section-label">💬 Activity Log</div>
+                    <div class="section-label">Activity Log</div>
                     <div class="btn-group">
-                        <button class="btn btn-primary" onclick="runAgent('activity-log-handler', false)">💬 Hantera
+                        <button class="btn btn-primary" onclick="runAgent('activity-log-handler', false)">Hantera
                             Kommentarer</button>
-                        <button class="btn btn-warning" onclick="runAgent('activity-log-handler', true)">🧪
+                        <button class="btn btn-warning" onclick="runAgent('activity-log-handler', true)">
                             Dry-Run</button>
                     </div>
 
-                    <div class="section-label">🏋️ Workout Editor</div>
+                    <div class="section-label">Workout Editor</div>
                     <div class="btn-group">
-                        <button class="btn btn-success" onclick="openWorkoutModal('replace')">🔄 Byt Övning</button>
-                        <button class="btn btn-danger" onclick="openWorkoutModal('delete')">🗑️ Ta Bort</button>
-                        <button class="btn btn-primary" onclick="openWorkoutModal('add')">➕ Lägg Till</button>
-                        <button class="btn btn-purple" onclick="openWorkoutModal('reorder')">↕️ Flytta</button>
+                        <button class="btn btn-success" onclick="openWorkoutModal('replace')">Byt Övning</button>
+                        <button class="btn btn-danger" onclick="openWorkoutModal('delete')">Ta Bort</button>
+                        <button class="btn btn-primary" onclick="openWorkoutModal('add')">Lägg Till</button>
+                        <button class="btn btn-purple" onclick="openWorkoutModal('reorder')">Flytta</button>
                     </div>
 
-                    <div class="section-label">📋 Uppgiftskö</div>
+                    <div class="section-label">Uppgiftskö</div>
                     <div class="btn-group">
-                        <button class="btn btn-outline" onclick="runAgent('process-tasks', false)">📋 Kör
+                        <button class="btn btn-outline" onclick="runAgent('process-tasks', false)">Kör
                             Uppgiftskö</button>
                     </div>
 
                     <!-- Workout Modal -->
                     <div id="workoutModal" style="display:none; margin-top:16px;">
                         <div class="action-card">
-                            <h3><span id="wmIcon">🔄</span> <span id="wmTitle">Byt Övning</span></h3>
+                            <h3><span id="wmIcon"></span> <span id="wmTitle">Byt Övning</span></h3>
                             <div class="form-group">
                                 <label class="form-label">Klient e-post</label>
                                 <input type="email" class="form-input" id="wmEmail" placeholder="klient@example.com">
@@ -1155,12 +1460,12 @@
 
             <div class="card">
                 <div class="card-header">
-                    <h2>🔄 Senaste Körningar</h2>
-                    <button class="btn btn-outline" onclick="loadRuns()">🔄</button>
+                    <h2>Senaste Körningar</h2>
+                    <button class="btn btn-outline" onclick="loadRuns()"></button>
                 </div>
                 <div id="runsList" class="list-scroll">
                     <div class="empty-state">
-                        <div class="icon">📭</div>
+                        <div class="icon"></div>
                         <p>Inga körningar</p>
                     </div>
                 </div>
@@ -1175,7 +1480,7 @@
                 <!-- Onboarding -->
                 <div class="card" style="grid-column: span 2">
                     <div class="card-header">
-                        <h2>🚀 Startinlämning → Träningsupplägg</h2>
+                        <h2>Startinlämning → Träningsupplägg</h2>
                     </div>
                     <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">Fyll i klientens data
                         från startinlämningen. AI:n skapar ett komplett träningsupplägg.</p>
@@ -1221,12 +1526,12 @@
                         </div>
                     </div>
                     <button class="btn btn-primary" style="width:100%; margin-top:16px" onclick="runOnboarding()"
-                        id="btnOnboard">🧠 Generera Träningsupplägg</button>
+                        id="btnOnboard">Generera Träningsupplägg</button>
                     <div id="onboardResult" class="result-box" style="margin-top:16px"></div>
                     <div id="onboardPreview" style="display:none; margin-top:16px"></div>
                     <div id="onboardActions" style="display:none; margin-top:16px; text-align:center">
                         <button class="btn btn-primary" style="width:100%; font-size:16px; padding:14px"
-                            onclick="executeOnboardingPlan()" id="btnExecute">✅ Kör — Skapa allt i Trainerize</button>
+                            onclick="executeOnboardingPlan()" id="btnExecute">Kör — Skapa allt i Trainerize</button>
                     </div>
                     <div id="executeStatus" class="result-box" style="margin-top:12px"></div>
                 </div>
@@ -1234,7 +1539,7 @@
                 <!-- Exercise Replacement -->
                 <div class="card">
                     <div class="card-header">
-                        <h2>🔄 Föreslå Övningsbyte</h2>
+                        <h2>Föreslå Övningsbyte</h2>
                     </div>
                     <label>Nuvarande övning *</label>
                     <input type="text" id="aiCurrExercise" placeholder="T.ex. Barbell Back Squat">
@@ -1245,14 +1550,14 @@
                     <label>Anledning till byte</label>
                     <input type="text" id="aiExReason" placeholder="T.ex. Smärta i knä">
                     <button class="btn btn-primary" style="width:100%; margin-top:12px"
-                        onclick="runExerciseReplace()">🔄 Föreslå Ersättning</button>
+                        onclick="runExerciseReplace()">Föreslå Ersättning</button>
                     <div id="exerciseResult" class="result-box" style="margin-top:12px"></div>
                 </div>
 
                 <!-- Message Composer -->
                 <div class="card">
                     <div class="card-header">
-                        <h2>💬 Formulera Svar</h2>
+                        <h2>Formulera Svar</h2>
                     </div>
                     <label>Klientens namn *</label>
                     <input type="text" id="aiMsgClient" placeholder="Förnamn">
@@ -1260,7 +1565,7 @@
                     <textarea id="aiMsgText" rows="4" placeholder="Klistra in klientens meddelande här..."></textarea>
                     <label>Klientens mål (valfritt)</label>
                     <input type="text" id="aiMsgGoal" placeholder="T.ex. Styrkeökning">
-                    <button class="btn btn-primary" style="width:100%; margin-top:12px" onclick="runMessageCompose()">💬
+                    <button class="btn btn-primary" style="width:100%; margin-top:12px" onclick="runMessageCompose()">
                         Generera Svar</button>
                     <div id="messageResult" class="result-box" style="margin-top:12px"></div>
                 </div>
@@ -1268,13 +1573,13 @@
                 <!-- Freeform -->
                 <div class="card" style="grid-column: span 2">
                     <div class="card-header">
-                        <h2>🔮 Fritt AI-anrop</h2>
+                        <h2>Fritt AI-anrop</h2>
                     </div>
                     <p style="color: var(--text-secondary); margin-bottom: 12px; font-size: 14px;">Ställ valfri fråga
                         till AI-tränaren. Den har PTO:s tränarprofil som grund.</p>
                     <textarea id="aiQuery" rows="4"
                         placeholder="T.ex. Ge mig ett 4-veckors progressionsschema för en nybörjare som tränar 3 dagar/vecka..."></textarea>
-                    <button class="btn btn-primary" style="width:100%; margin-top:12px" onclick="runFreeform()">🔮 Fråga
+                    <button class="btn btn-primary" style="width:100%; margin-top:12px" onclick="runFreeform()">Fråga
                         AI</button>
                     <div id="freeformResult" class="result-box" style="margin-top:12px"></div>
                 </div>
@@ -1284,25 +1589,63 @@
         <!-- ═══════ TAB: Cases (Ärenden) ═══════ -->
         <div id="tab-cases" class="tab-content">
             <div class="case-submit-area">
-                <h3>📋 Nytt ärende</h3>
-                <p>Beskriv ärendet i fritext — ange klientens namn/e-post och vad som behöver göras. AI analyserar och föreslår en åtgärdsplan.</p>
-                <textarea class="case-textarea" id="caseInput" placeholder="Exempel: Klient anna@example.com har ont i axlarna av bänkpress. Hon vill fortsätta träna bröst men behöver en övning som är snällare mot axlarna."></textarea>
+                <h3>Nytt ärende</h3>
+                <p>Beskriv ärendet i fritext — ange klientens namn/e-post och vad som behöver göras. AI analyserar och
+                    föreslår en åtgärdsplan.</p>
+                <textarea class="case-textarea" id="caseInput"
+                    placeholder="Exempel: Klient anna@example.com har ont i axlarna av bänkpress. Hon vill fortsätta träna bröst men behöver en övning som är snällare mot axlarna."></textarea>
                 <div style="display:flex;gap:10px;margin-top:14px;align-items:center">
                     <button class="btn btn-primary" onclick="submitCase()" id="btnSubmitCase" style="min-width:200px">
-                        <span class="spinner"></span> 🧠 Analysera ärende
+                        <span class="spinner"></span> Analysera ärende
                     </button>
                     <span id="caseSubmitStatus" style="font-size:12px;color:var(--text-muted)"></span>
                 </div>
             </div>
 
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-                <h3 style="font-size:15px;font-weight:600">📋 Ärenden</h3>
-                <button class="btn btn-outline" onclick="loadCases()" style="font-size:12px">🔄 Uppdatera</button>
+                <h3 style="font-size:15px;font-weight:600">Ärenden</h3>
+                <button class="btn btn-outline" onclick="loadCases()" style="font-size:12px">Uppdatera</button>
             </div>
             <div id="casesList">
                 <div class="empty-state">
-                    <div class="icon">📋</div>
+                    <div class="icon">—</div>
                     <p>Inga ärenden ännu. Skapa ditt första ärende ovan.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════ TAB: Starts ═══════ -->
+        <div id="tab-starts" class="tab-content">
+            <div class="starts-stats" id="startsStats">
+                <div class="starts-stat">
+                    <div class="stat-value pending" id="startsPending">–</div>
+                    <div class="stat-label">Ohanterade</div>
+                </div>
+                <div class="starts-stat">
+                    <div class="stat-value done" id="startsDone">–</div>
+                    <div class="stat-label">Hanterade</div>
+                </div>
+                <div class="starts-stat">
+                    <div class="stat-value" id="startsTotal" style="color:var(--text-primary)">–</div>
+                    <div class="stat-label">Totalt</div>
+                </div>
+            </div>
+
+            <div class="starts-filter-bar">
+                <h3>Startinlämningar</h3>
+                <div class="filter-btns">
+                    <button class="filter-btn active" onclick="filterStarts('pending')" id="filterPending">
+                        Ohanterade</button>
+                    <button class="filter-btn" onclick="filterStarts('all')" id="filterAll">Alla</button>
+                    <button class="filter-btn" onclick="filterStarts('done')" id="filterDone">Hanterade</button>
+                    <button class="btn btn-outline" onclick="loadStarts()" style="font-size:12px">Uppdatera</button>
+                </div>
+            </div>
+
+            <div id="startsList">
+                <div class="empty-state">
+                    <div class="icon">—</div>
+                    <p>Laddar startinlämningar...</p>
                 </div>
             </div>
         </div>
@@ -1325,13 +1668,14 @@
             event.target.classList.add('active');
             if (tab === 'tools') loadPrograms();
             if (tab === 'cases') loadCases();
+            if (tab === 'starts') loadStarts();
             if (tab === 'ai' && selectedClient) {
                 document.getElementById('aiFirstName').value = selectedClient.firstName || '';
                 document.getElementById('aiLastName').value = selectedClient.lastName || '';
                 document.getElementById('aiMsgClient').value = selectedClient.firstName || '';
                 const bar = document.getElementById('aiSelectedClient');
                 bar.style.display = 'flex';
-                bar.innerHTML = `👤 <strong>${esc(selectedClient.firstName)} ${esc(selectedClient.lastName || '')}</strong> <span style="color: var(--text-secondary); margin-left: 8px">ID: ${selectedClient.id}</span>`;
+                bar.innerHTML = `<strong>${esc(selectedClient.firstName)} ${esc(selectedClient.lastName || '')}</strong> <span style="color: var(--text-secondary); margin-left: 8px">ID: ${selectedClient.id}</span>`;
             }
         }
 
@@ -1371,14 +1715,14 @@
         // ─── Clients ───
         async function loadClients() {
             const el = document.getElementById('clientList');
-            el.innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>Laddar klienter...</p></div>';
+            el.innerHTML = '<div class="empty-state"><div class="icon"></div><p>Laddar klienter...</p></div>';
             try {
                 const data = await apiGet('/api/trainerize/clients');
                 allClients = data?.data?.users || data?.users || data?.data?.result || [];
                 if (!Array.isArray(allClients)) allClients = [];
                 renderClients(allClients);
             } catch (err) {
-                el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(err.message)}</p></div>`;
+                el.innerHTML = `<div class="empty-state"><div class="icon"></div><p>${esc(err.message)}</p></div>`;
             }
         }
 
@@ -1393,7 +1737,7 @@
         function renderClients(clients) {
             const el = document.getElementById('clientList');
             if (!clients.length) {
-                el.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>Inga klienter hittade</p></div>';
+                el.innerHTML = '<div class="empty-state"><div class="icon">—</div><p>Inga klienter hittade</p></div>';
                 return;
             }
             el.innerHTML = clients.map(c => {
@@ -1419,7 +1763,7 @@
 
             // Update client detail card
             document.getElementById('clientDetail').innerHTML = `
-                <div class="card-header"><h2>📋 ${esc(name)}</h2></div>
+                <div class="card-header"><h2>${esc(name)}</h2></div>
                 <div class="card-body">
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
                         <div><strong>ID:</strong> ${client.id}</div>
@@ -1458,7 +1802,7 @@
             if (!selectedClient) return;
             const el = document.getElementById('clientActionResult');
             el.className = 'result-box visible';
-            el.textContent = '⏳ Laddar kalender...';
+            el.textContent = 'Laddar kalender...';
             const data = await apiGet(`/api/trainerize/client/${selectedClient.id}/calendar`);
             showResult('clientActionResult', data);
         }
@@ -1467,7 +1811,7 @@
             if (!selectedClient) return;
             const el = document.getElementById('clientActionResult');
             el.className = 'result-box visible';
-            el.textContent = '⏳ Laddar planer...';
+            el.textContent = 'Laddar planer...';
             const data = await apiGet(`/api/trainerize/client/${selectedClient.id}/plans`);
             showResult('clientActionResult', data);
         }
@@ -1476,7 +1820,7 @@
             if (!selectedClient) return;
             const el = document.getElementById('clientActionResult');
             el.className = 'result-box visible';
-            el.textContent = '⏳ Laddar noteringar...';
+            el.textContent = 'Laddar noteringar...';
             const data = await apiGet(`/api/trainerize/client/${selectedClient.id}/notes`);
             showResult('clientActionResult', data);
         }
@@ -1485,7 +1829,7 @@
             if (!selectedClient) return;
             const el = document.getElementById('clientActionResult');
             el.className = 'result-box visible';
-            el.textContent = '⏳ Laddar sammanfattning...';
+            el.textContent = 'Laddar sammanfattning...';
             const data = await apiGet(`/api/trainerize/client/${selectedClient.id}/summary`);
             showResult('clientActionResult', data);
         }
@@ -1605,57 +1949,169 @@
         }
 
         // ─── Messages ───
-        async function loadMessages() {
-            const el = document.getElementById('messageList');
-            el.innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>Laddar...</p></div>';
+        // ─── Inbox (Incoming Messages) ───
+        let inboxMessages = [];
+        let inboxFilter = 'pending';
+
+        async function loadInbox() {
+            const el = document.getElementById('inboxList');
+            el.innerHTML = '<div class="empty-state"><p>Laddar...</p></div>';
             try {
-                const data = await apiGet('/api/trainerize/messages');
-                const threads = data?.data?.result || data?.result || [];
-                if (!threads.length) {
-                    el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>Inga meddelanden</p></div>';
-                    return;
-                }
-                el.innerHTML = threads.map(t => `
-                    <div class="thread-item" onclick="document.getElementById('replyThreadId').value=${t.threadID || t.id}">
-                        <div class="thread-sender">${esc(t.senderName || t.subject || 'Okänd')}</div>
-                        <div class="thread-excerpt">${esc(t.excerpt || t.body || '—')}</div>
-                        <div class="thread-time">Tråd #${t.threadID || t.id}</div>
-                    </div>
-                `).join('');
+                const data = await apiGet('/api/inbox');
+                inboxMessages = data?.data || [];
+                renderInbox();
             } catch (err) {
-                el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(err.message)}</p></div>`;
+                el.innerHTML = `<div class="empty-state"><p>Fel: ${esc(err.message)}</p></div>`;
             }
         }
 
-        async function replyToThread() {
-            const btn = event.target.closest('.btn');
-            setLoading(btn, true);
-            try {
-                const data = await apiPost('/api/trainerize/messages/reply', {
-                    threadId: parseInt(document.getElementById('replyThreadId').value),
-                    body: document.getElementById('replyBody').value,
-                });
-                showResult('replyResult', data);
-                document.getElementById('replyBody').value = '';
-            } catch (err) {
-                showResult('replyResult', err.message, true);
-            }
-            setLoading(btn, false);
+        function filterInbox(filter) {
+            inboxFilter = filter;
+            document.querySelectorAll('#inboxFilters .btn').forEach(b => {
+                b.className = b.dataset.filter === filter ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
+            });
+            renderInbox();
         }
+
+        function renderInbox() {
+            const el = document.getElementById('inboxList');
+            let msgs = inboxMessages;
+            const pending = msgs.filter(m => !m.is_handled);
+            const handled = msgs.filter(m => m.is_handled);
+
+            document.getElementById('inboxPending').textContent = pending.length;
+            document.getElementById('inboxHandled').textContent = handled.length;
+            document.getElementById('inboxTotal').textContent = msgs.length;
+
+            if (inboxFilter === 'pending') msgs = pending;
+            else if (inboxFilter === 'handled') msgs = handled;
+
+            if (!msgs.length) {
+                el.innerHTML = '<div class="empty-state"><p>Inga meddelanden</p></div>';
+                return;
+            }
+
+            el.innerHTML = msgs.map(m => {
+                const date = new Date(m.sent_at).toLocaleDateString('sv-SE');
+                const time = new Date(m.sent_at).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+                const name = m.client_name || `Klient #${m.sender_id}`;
+                const statusBadge = m.is_handled
+                    ? '<span style="background:#2d4a3e;color:#4ade80;padding:2px 8px;border-radius:10px;font-size:11px">Hanterad</span>'
+                    : '<span style="background:#4a2d2d;color:#f87171;padding:2px 8px;border-radius:10px;font-size:11px">Ohanterad</span>';
+
+                return `
+                <div class="card" style="margin-bottom:12px;cursor:pointer" onclick="toggleInboxDetail('${m.id}')">
+                    <div style="padding:16px;display:flex;align-items:center;gap:12px">
+                        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px;flex-shrink:0">
+                            ${esc(name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase())}
+                        </div>
+                        <div style="flex:1;min-width:0">
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <strong>${esc(name)}</strong>
+                                ${statusBadge}
+                            </div>
+                            <div style="color:var(--text-secondary);font-size:13px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                                ${esc((m.body || '').slice(0, 120))}
+                            </div>
+                        </div>
+                        <div style="color:var(--text-muted);font-size:12px;white-space:nowrap">${date} ${time}</div>
+                    </div>
+                    <!-- Detail panel -->
+                    <div id="inbox-detail-${m.id}" style="display:none;border-top:1px solid var(--border);padding:16px">
+                        <div style="margin-bottom:12px">
+                            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">Meddelande</div>
+                            <div style="background:var(--bg-tertiary);padding:12px;border-radius:8px;white-space:pre-wrap;font-size:14px">${esc(m.body || '')}</div>
+                        </div>
+                        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Tråd #${m.thread_id || '?'} | Avsändare #${m.sender_id}</div>
+                        ${m.is_handled ? `
+                            <div style="margin-bottom:8px">
+                                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">Skickat svar</div>
+                                <div style="background:var(--bg-tertiary);padding:12px;border-radius:8px;white-space:pre-wrap;font-size:14px">${esc(m.draft_reply || '—')}</div>
+                            </div>
+                        ` : `
+                            <div style="margin-bottom:12px">
+                                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">AI-utkast</div>
+                                <textarea id="inbox-draft-${m.id}" style="width:100%;min-height:80px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:14px;resize:vertical;font-family:inherit" placeholder="Klicka Generera utkast...">${esc(m.draft_reply || '')}</textarea>
+                            </div>
+                            <div id="inbox-log-${m.id}" style="font-size:12px;color:var(--text-secondary);margin-bottom:8px"></div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                                <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();generateInboxDraft('${m.id}')">Generera utkast</button>
+                                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();sendInboxReply('${m.id}')">Skicka svar</button>
+                                <button class="btn btn-sm" style="background:var(--bg-tertiary);color:var(--text-secondary)" onclick="event.stopPropagation();dismissInboxMsg('${m.id}')">Avfarda</button>
+                            </div>
+                        `}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleInboxDetail(id) {
+            const el = document.getElementById('inbox-detail-' + id);
+            if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function inboxLog(id, msg) {
+            const el = document.getElementById('inbox-log-' + id);
+            if (el) el.textContent = msg;
+        }
+
+        async function generateInboxDraft(id) {
+            inboxLog(id, 'Genererar AI-utkast...');
+            try {
+                const res = await apiPost(`/api/inbox/${id}/draft`, {});
+                const draft = res?.data?.draft || '';
+                const ta = document.getElementById('inbox-draft-' + id);
+                if (ta) ta.value = draft;
+                inboxLog(id, 'Utkast genererat.');
+            } catch (err) {
+                inboxLog(id, 'Fel: ' + err.message);
+            }
+        }
+
+        async function sendInboxReply(id) {
+            const ta = document.getElementById('inbox-draft-' + id);
+            const body = ta?.value?.trim();
+            if (!body) { inboxLog(id, 'Skriv eller generera ett svar forst.'); return; }
+            inboxLog(id, 'Skickar svar via Trainerize...');
+            try {
+                await apiPost(`/api/inbox/${id}/send`, { body });
+                inboxLog(id, 'Svaret skickat!');
+                await loadInbox();
+            } catch (err) {
+                inboxLog(id, 'Fel: ' + err.message);
+            }
+        }
+
+        async function dismissInboxMsg(id) {
+            inboxLog(id, 'Avfardar...');
+            try {
+                await apiPost(`/api/inbox/${id}/dismiss`, {});
+                await loadInbox();
+            } catch (err) {
+                inboxLog(id, 'Fel: ' + err.message);
+            }
+        }
+
+        // Auto-load inbox when tab opens
+        const origSwitchTab = switchTab;
+        switchTab = function (name) {
+            origSwitchTab(name);
+            if (name === 'messages') loadInbox();
+        };
 
         // ─── Run Agent ───
         async function runAgent(agentId, dryRun) {
             const el = document.getElementById('runStatus');
             el.className = 'result-box visible success';
-            el.textContent = `⏳ Startar ${agentId}...`;
+            el.textContent = `Startar ${agentId}...`;
             try {
                 const data = await apiPost('/api/run-agent', { agentId, dryRun });
-                el.textContent = `🔄 Startad — ${data.runId}`;
+                el.textContent = `Startad — ${data.runId}`;
                 const poll = setInterval(async () => {
                     try {
                         const s = await apiGet(`/api/run-status/${data.runId}`);
                         if (s.status === 'running') {
-                            el.textContent = `🔄 ${agentId} körs...`;
+                            el.textContent = `${agentId} körs...`;
                         } else {
                             clearInterval(poll);
                             el.className = `result-box visible ${s.status === 'completed' ? 'success' : 'error'}`;
@@ -1671,10 +2127,10 @@
 
         // ─── Workout Modal ───
         const wmMeta = {
-            replace: { icon: '🔄', title: 'Byt Övning', prefix: 'Byt ut ' },
-            delete: { icon: '🗑️', title: 'Ta Bort Övning', prefix: 'Ta bort ' },
-            add: { icon: '➕', title: 'Lägg Till Övning', prefix: 'Lägg till ' },
-            reorder: { icon: '↕️', title: 'Flytta Övning', prefix: 'Flytta ' },
+            replace: { icon: '', title: 'Byt Övning', prefix: 'Byt ut ' },
+            delete: { icon: '', title: 'Ta Bort Övning', prefix: 'Ta bort ' },
+            add: { icon: '', title: 'Lägg Till Övning', prefix: 'Lägg till ' },
+            reorder: { icon: '', title: 'Flytta Övning', prefix: 'Flytta ' },
         };
 
         function openWorkoutModal(action) {
@@ -1709,7 +2165,7 @@
                 const data = await apiGet('/api/runs');
                 const runs = data.runs || [];
                 if (!runs.length) {
-                    el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>Inga körningar</p></div>';
+                    el.innerHTML = '<div class="empty-state"><div class="icon"></div><p>Inga körningar</p></div>';
                     return;
                 }
                 el.innerHTML = runs.slice(0, 20).map(r => {
@@ -1726,7 +2182,7 @@
                     `;
                 }).join('');
             } catch {
-                el.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Kan inte ladda</p></div>';
+                el.innerHTML = '<div class="empty-state"><div class="icon"></div><p>Kan inte ladda</p></div>';
             }
         }
 
@@ -1756,7 +2212,7 @@
             }
 
             btn.disabled = true;
-            btn.textContent = '⏳ Genererar upplägg... (kan ta 15-30s)';
+            btn.textContent = 'Genererar upplägg... (kan ta 15-30s)';
             resultEl.className = 'result-box';
             resultEl.textContent = '';
             previewEl.style.display = 'none';
@@ -1782,7 +2238,7 @@
                 showResult('onboardResult', `Fel: ${err.message}`, true);
             } finally {
                 btn.disabled = false;
-                btn.textContent = '🧠 Generera Träningsupplägg';
+                btn.textContent = 'Generera Träningsupplägg';
             }
         }
 
@@ -1799,7 +2255,7 @@
             const btn = document.getElementById('btnExecute');
             const statusEl = document.getElementById('executeStatus');
             btn.disabled = true;
-            btn.textContent = '⏳ Skapar upplägg i Trainerize...';
+            btn.textContent = 'Skapar upplägg i Trainerize...';
             statusEl.className = 'result-box visible';
             statusEl.textContent = 'Laddar övningsbibliotek och matchar övningar...';
 
@@ -1815,34 +2271,34 @@
 
                 // Render step-by-step status
                 let html = result.ok
-                    ? '✅ Upplägget är skapat i Trainerize!\n\n'
-                    : '⚠️ Delvis klart (se fel nedan)\n\n';
+                    ? 'Upplägget är skapat i Trainerize!\n\n'
+                    : 'Delvis klart (se fel nedan)\n\n';
 
                 html += 'Steg:\n';
                 for (const s of result.steps) {
-                    const icon = s.status === 'ok' ? '✅' : s.status === 'skipped' ? '⏭️' : '❌';
+                    const icon = s.status === 'ok' ? '' : s.status === 'skipped' ? '' : '';
                     html += `  ${icon} ${s.step}: ${s.detail || ''}\n`;
                 }
 
                 if (result.errors?.length) {
                     html += '\nFel:\n';
-                    result.errors.forEach(e => { html += `  ❌ ${e}\n`; });
+                    result.errors.forEach(e => { html += `  ${e}\n`; });
                 }
 
                 statusEl.className = `result-box visible ${result.ok ? 'success' : 'error'}`;
                 statusEl.textContent = html;
 
                 if (result.ok) {
-                    btn.textContent = '✅ Klart!';
+                    btn.textContent = 'Klart!';
                     btn.style.background = 'var(--success)';
                 } else {
-                    btn.textContent = '⚠️ Delvis klart';
+                    btn.textContent = 'Delvis klart';
                     btn.disabled = false;
                 }
             } catch (err) {
                 showResult('executeStatus', `Fel: ${err.message}`, true);
                 btn.disabled = false;
-                btn.textContent = '✅ Kör — Skapa allt i Trainerize';
+                btn.textContent = 'Kör — Skapa allt i Trainerize';
             }
         }
 
@@ -1851,14 +2307,14 @@
 
             // Client Summary
             html += `<div style="margin-bottom:20px">
-                <h3 style="color:var(--accent);margin-bottom:8px">📋 Klientsammanfattning</h3>
+                <h3 style="color:var(--accent);margin-bottom:8px">Klientsammanfattning</h3>
                 <p style="color:var(--text-secondary);line-height:1.6">${esc(result.clientSummary)}</p>
             </div>`;
 
             // Plan
             if (result.plan) {
                 html += `<div style="margin-bottom:20px;padding:16px;background:var(--bg-card);border-radius:var(--radius-sm)">
-                    <h3 style="color:var(--success);margin-bottom:8px">📋 ${esc(result.plan.name)}</h3>
+                    <h3 style="color:var(--success);margin-bottom:8px">${esc(result.plan.name)}</h3>
                     <p style="color:var(--text-secondary);margin-bottom:8px">${esc(result.plan.description)}</p>
                     <div style="display:flex;gap:16px">
                         <span style="color:var(--text-muted)">Varaktighet: <strong style="color:var(--text-primary)">${result.plan.durationWeeks} veckor</strong></span>
@@ -1869,7 +2325,7 @@
 
             // Workouts
             if (result.workouts) {
-                html += `<h3 style="color:var(--accent);margin-bottom:12px">🏋️ Träningspass (${result.workouts.length} st)</h3>`;
+                html += `<h3 style="color:var(--accent);margin-bottom:12px">Träningspass (${result.workouts.length} st)</h3>`;
                 result.workouts.forEach(w => {
                     html += `<div style="margin-bottom:16px;padding:16px;background:var(--bg-card);border-radius:var(--radius-sm);border-left:3px solid var(--accent)">
                         <h4 style="margin-bottom:4px">${esc(w.name)}</h4>
@@ -1898,7 +2354,7 @@
             // Weekly Schedule
             if (result.weeklySchedule) {
                 const dayNames = { monday: 'Måndag', tuesday: 'Tisdag', wednesday: 'Onsdag', thursday: 'Torsdag', friday: 'Fredag', saturday: 'Lördag', sunday: 'Söndag' };
-                html += `<h3 style="color:var(--accent);margin-bottom:8px">📅 Veckoschema</h3>
+                html += `<h3 style="color:var(--accent);margin-bottom:8px">Veckoschema</h3>
                 <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px">`;
                 Object.entries(dayNames).forEach(([key, name]) => {
                     const val = result.weeklySchedule?.[key];
@@ -1919,7 +2375,7 @@
             const exercise = document.getElementById('aiCurrExercise').value.trim();
             if (!exercise) { showResult('exerciseResult', 'Ange nuvarande övning', true); return; }
 
-            showResult('exerciseResult', '⏳ AI tänker...');
+            showResult('exerciseResult', 'AI tänker...');
             try {
                 const data = await apiPost('/api/ai/suggest-exercise', {
                     currentExercise: exercise,
@@ -1952,7 +2408,7 @@
             const msg = document.getElementById('aiMsgText').value.trim();
             if (!name || !msg) { showResult('messageResult', 'Namn och meddelande krävs', true); return; }
 
-            showResult('messageResult', '⏳ AI formulerar svar...');
+            showResult('messageResult', 'AI formulerar svar...');
             try {
                 const data = await apiPost('/api/ai/compose-message', {
                     clientName: name,
@@ -1980,7 +2436,7 @@
             const prompt = document.getElementById('aiQuery').value.trim();
             if (!prompt) { showResult('freeformResult', 'Skriv en fråga', true); return; }
 
-            showResult('freeformResult', '⏳ AI tänker...');
+            showResult('freeformResult', 'AI tänker...');
             try {
                 const data = await apiPost('/api/ai/query', { prompt });
                 if (!data.ok) throw new Error(data.error);
@@ -1994,20 +2450,20 @@
 
         // ─── Cases (Ärenden) ───
         const actionIcons = {
-            replace_exercise: '🔄',
-            add_exercise: '➕',
-            remove_exercise: '🗑️',
-            modify_program: '📋',
-            add_note: '📝',
-            send_message: '💬',
-            other: '⚡',
+            replace_exercise: '',
+            add_exercise: '',
+            remove_exercise: '',
+            modify_program: '',
+            add_note: '',
+            send_message: '',
+            other: '',
         };
 
         const statusLabels = {
-            pending: '⏳ Väntande',
-            executing: '🔄 Utförs...',
-            completed: '✅ Utförd',
-            failed: '❌ Misslyckad',
+            pending: 'Väntande',
+            executing: 'Utförs...',
+            completed: 'Utförd',
+            failed: 'Misslyckad',
             rejected: '🚫 Avvisad',
         };
 
@@ -2018,17 +2474,17 @@
             const btn = document.getElementById('btnSubmitCase');
             const statusEl = document.getElementById('caseSubmitStatus');
             setLoading(btn, true);
-            statusEl.textContent = '🧠 AI analyserar ärendet...';
+            statusEl.textContent = 'AI analyserar ärendet...';
 
             try {
                 const data = await apiPost('/api/cases/analyze', { text });
                 if (!data.ok) throw new Error(data.error);
-                statusEl.textContent = '✅ Ärende skapat!';
+                statusEl.textContent = 'Ärende skapat!';
                 document.getElementById('caseInput').value = '';
                 setTimeout(() => { statusEl.textContent = ''; }, 3000);
                 loadCases();
             } catch (err) {
-                statusEl.textContent = `❌ ${err.message}`;
+                statusEl.textContent = `${err.message}`;
             }
             setLoading(btn, false);
         }
@@ -2039,12 +2495,12 @@
                 const data = await apiGet('/api/cases');
                 const list = data?.data || [];
                 if (!list.length) {
-                    el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>Inga ärenden ännu. Skapa ditt första ärende ovan.</p></div>';
+                    el.innerHTML = '<div class="empty-state"><div class="icon">—</div><p>Inga ärenden ännu. Skapa ditt första ärende ovan.</p></div>';
                     return;
                 }
                 el.innerHTML = list.map(renderCase).join('');
             } catch (err) {
-                el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${esc(err.message)}</p></div>`;
+                el.innerHTML = `<div class="empty-state"><div class="icon"></div><p>${esc(err.message)}</p></div>`;
             }
         }
 
@@ -2056,7 +2512,7 @@
             let actionsHtml = '';
             if (a.actions?.length) {
                 actionsHtml = a.actions.map(act => {
-                    const icon = actionIcons[act.type] || '⚡';
+                    const icon = actionIcons[act.type] || '';
                     let details = '';
                     if (act.params?.exerciseName) details += `Nuvarande: ${esc(act.params.exerciseName)}. `;
                     if (act.params?.replacementExercise) details += `Ersättning: ${esc(act.params.replacementExercise)}. `;
@@ -2075,24 +2531,24 @@
             let executionHtml = '';
             if (c.executionResult?.steps?.length) {
                 executionHtml = `<div class="case-section">
-                    <div class="case-section-title">📊 Exekveringsresultat</div>
+                    <div class="case-section-title">Exekveringsresultat</div>
                     ${c.executionResult.steps.map(s => {
-                        const icon = s.status === 'ok' ? '✅' : s.status === 'warn' ? '⚠️' : '❌';
-                        return `<div class="case-action-item">
+                    const icon = s.status === 'ok' ? '' : s.status === 'warn' ? '' : '';
+                    return `<div class="case-action-item">
                             <span class="case-action-icon">${icon}</span>
                             <div class="case-action-text">
                                 <strong>${esc(s.step)}</strong>
                                 <small>${esc(s.detail || '')}</small>
                             </div>
                         </div>`;
-                    }).join('')}
+                }).join('')}
                 </div>`;
             }
 
             const buttonsHtml = c.status === 'pending'
                 ? `<div class="case-actions-bar">
                     <button class="btn btn-success" onclick="event.stopPropagation(); executeCase('${c.id}')" style="flex:1">
-                        <span class="spinner"></span> ✅ Godkänn & Utför
+                        <span class="spinner"></span> Godkänn & Utför
                     </button>
                     <button class="btn btn-outline" onclick="event.stopPropagation(); rejectCase('${c.id}')">
                         🚫 Avvisa
@@ -2104,7 +2560,7 @@
                 <div class="case-header">
                     <div>
                         <div class="case-summary">${esc(a.summary || c.text?.slice(0, 100) || '–')}</div>
-                        <div class="case-meta">🕐 ${time} · 👤 ${esc(a.clientIdentifier || '–')}</div>
+                        <div class="case-meta">🕐 ${time} · ${esc(a.clientIdentifier || '–')}</div>
                     </div>
                     <span class="case-badge ${badge}">${statusLabels[badge] || badge}</span>
                 </div>
@@ -2114,15 +2570,15 @@
                         <div class="case-original">${esc(c.text)}</div>
                     </div>
                     ${a.reasoning ? `<div class="case-section">
-                        <div class="case-section-title">🧠 AI-resonemang</div>
+                        <div class="case-section-title">AI-resonemang</div>
                         <div class="case-reasoning">${esc(a.reasoning)}</div>
                     </div>` : ''}
                     ${actionsHtml ? `<div class="case-section">
-                        <div class="case-section-title">⚡ Föreslagna åtgärder</div>
+                        <div class="case-section-title">Föreslagna åtgärder</div>
                         ${actionsHtml}
                     </div>` : ''}
                     ${a.clientMessage ? `<div class="case-section">
-                        <div class="case-section-title">💬 Meddelande till klient</div>
+                        <div class="case-section-title">Meddelande till klient</div>
                         <div class="case-message-preview">${esc(a.clientMessage)}</div>
                     </div>` : ''}
                     ${executionHtml}
@@ -2152,6 +2608,402 @@
                 loadCases();
             } catch (err) {
                 alert('Fel: ' + err.message);
+            }
+        }
+        // ─── Starts ───
+        let allStarts = [];
+        let startsFilter = 'pending';
+        const startPlans = {}; // id -> AI plan result
+        const startClientIds = {}; // id -> { clientId, trainerId }
+
+        async function loadStarts() {
+            const el = document.getElementById('startsList');
+            el.innerHTML = '<div class="empty-state"><div class="icon">—</div><p>Laddar...</p></div>';
+            try {
+                const res = await apiGet('/api/starts');
+                allStarts = res.data || [];
+                updateStartsStats();
+                renderStarts();
+            } catch (err) {
+                el.innerHTML = `<div class="empty-state"><div class="icon">!</div><p>${esc(err.message)}</p></div>`;
+            }
+        }
+
+        function updateStartsStats() {
+            const pending = allStarts.filter(s => !s.is_done).length;
+            const done = allStarts.filter(s => s.is_done).length;
+            document.getElementById('startsPending').textContent = pending;
+            document.getElementById('startsDone').textContent = done;
+            document.getElementById('startsTotal').textContent = allStarts.length;
+        }
+
+        function filterStarts(f) {
+            startsFilter = f;
+            document.querySelectorAll('.starts-filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+            if (f === 'pending') document.getElementById('filterPending').classList.add('active');
+            else if (f === 'done') document.getElementById('filterDone').classList.add('active');
+            else document.getElementById('filterAll').classList.add('active');
+            renderStarts();
+        }
+
+        function renderStarts() {
+            const el = document.getElementById('startsList');
+            let list = allStarts;
+            if (startsFilter === 'pending') list = list.filter(s => !s.is_done);
+            else if (startsFilter === 'done') list = list.filter(s => s.is_done);
+
+            if (!list.length) {
+                el.innerHTML = `<div class="empty-state"><div class="icon">—</div><p>${startsFilter === 'pending' ? 'Inga ohanterade startinlämningar.' : 'Inga inlämningar hittade.'}</p></div>`;
+                return;
+            }
+
+            el.innerHTML = list.map(s => {
+                const initials = ((s.first_name || '')[0] || '') + ((s.last_name || '')[0] || '');
+                const date = new Date(s.created_at).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' });
+                const doneClass = s.is_done ? 'is-done' : '';
+                const badgeClass = s.is_done ? 'done' : 'pending';
+                const badgeText = s.is_done ? 'Hanterad' : 'Ohanterad';
+                const goalPreview = s.goal_description ? s.goal_description.slice(0, 80) + (s.goal_description.length > 80 ? '...' : '') : 'Inget mål angivet';
+
+                const focusTags = (s.focus_areas || []).map(f => `<span class="start-tag">${esc(f)}</span>`).join('');
+                const trainingFormTags = (s.training_forms || []).map(f => `<span class="start-tag">${esc(f)}</span>`).join('');
+                const placeTags = (s.training_places || []).map(f => `<span class="start-tag">${esc(f)}</span>`).join('');
+
+                // Measurements
+                const meas = [
+                    { l: 'Bröst/Rygg', v: s.measurement_chest_back },
+                    { l: 'Axlar', v: s.measurement_shoulders },
+                    { l: 'Midja', v: s.measurement_waist },
+                    { l: 'Höger arm', v: s.measurement_arm_right },
+                    { l: 'Vänster arm', v: s.measurement_arm_left },
+                    { l: 'Höger lår', v: s.measurement_thigh_right },
+                    { l: 'Vänster lår', v: s.measurement_thigh_left },
+                    { l: 'Höger vad', v: s.measurement_calf_right },
+                    { l: 'Vänster vad', v: s.measurement_calf_left },
+                ].filter(m => m.v);
+
+                const measHtml = meas.length
+                    ? `<div class="start-measurement-grid">${meas.map(m => `<div class="start-measurement-item"><div class="val">${m.v}</div><div class="lbl">${m.l}</div></div>`).join('')}</div>`
+                    : '<span class="start-field-value empty">Inga mått angivna</span>';
+
+                const planPreview = startPlans[s.id]
+                    ? `<div class="start-plan-preview" id="plan-preview-${s.id}">${esc(JSON.stringify(startPlans[s.id], null, 2))}</div>`
+                    : `<div id="plan-preview-${s.id}" style="display:none"></div>`;
+
+                // Step-based workflow buttons
+                const hasClient = !!startClientIds[s.id];
+                const hasPlan = !!startPlans[s.id];
+                const step1Done = hasClient;
+                const step2Done = hasPlan;
+
+                let actionBtns = '';
+                if (!s.is_done) {
+                    // Step 1: Create account in Trainerize
+                    actionBtns += `<button class="btn ${step1Done ? 'btn-outline' : 'btn-primary'}" onclick="event.stopPropagation(); createStartAccount('${s.id}')" id="btn-account-${s.id}" ${step1Done ? 'disabled' : ''}>
+                        <span class="spinner"></span> ${step1Done ? 'Konto skapat (ID: ' + startClientIds[s.id].clientId + ')' : '1. Skapa konto i Trainerize'}
+                    </button>`;
+                    // Step 2: Generate AI plan
+                    actionBtns += `<button class="btn ${step2Done ? 'btn-outline' : 'btn-primary'}" onclick="event.stopPropagation(); generateStartPlan('${s.id}')" id="btn-gen-${s.id}">
+                        <span class="spinner"></span> 2. Generera AI-plan
+                    </button>`;
+                    // Step 3: Execute plan (only if plan is generated)
+                    if (hasPlan) {
+                        actionBtns += `<button class="btn btn-success" onclick="event.stopPropagation(); executeStartPlan('${s.id}')">
+                            <span class="spinner"></span> 3. Kör plan
+                        </button>`;
+                    }
+                    // Always: mark as done
+                    actionBtns += `<button class="btn btn-outline" onclick="event.stopPropagation(); markStartDone('${s.id}')" style="margin-left:auto">Markera hanterad</button>`;
+                }
+
+                return `
+                <div class="start-card ${doneClass}" id="start-${s.id}">
+                    <div class="start-card-header" onclick="toggleStartDetail('${s.id}')">
+                        <div class="start-avatar">${esc(initials.toUpperCase())}</div>
+                        <div class="start-info">
+                            <div class="start-name">${esc(s.first_name)} ${esc(s.last_name || '')}</div>
+                            <div class="start-meta">
+                                <span>${esc(s.email)}</span>
+                                <span>${date}</span>
+                                <span>${esc(s.sessions_per_week || '–')} pass/vecka</span>
+                            </div>
+                            <div class="start-preview">${esc(goalPreview)}</div>
+                        </div>
+                        <span class="start-badge ${badgeClass}">${badgeText}</span>
+                    </div>
+                    <div class="start-detail">
+                        <!-- Grundinfo -->
+                        <div class="start-section">
+                            <div class="start-section-title">Grundinfo</div>
+                            <div class="start-fields">
+                                <div class="start-field"><span class="start-field-label">Förnamn</span><span class="start-field-value">${esc(s.first_name)}</span></div>
+                                <div class="start-field"><span class="start-field-label">Efternamn</span><span class="start-field-value">${esc(s.last_name || '–')}</span></div>
+                                <div class="start-field"><span class="start-field-label">E-post</span><span class="start-field-value">${esc(s.email)}</span></div>
+                                <div class="start-field"><span class="start-field-label">Ålder</span><span class="start-field-value">${s.age || '–'}</span></div>
+                                <div class="start-field"><span class="start-field-label">Vikt (kg)</span><span class="start-field-value">${s.weight_kg || '–'}</span></div>
+                                <div class="start-field"><span class="start-field-label">Längd (cm)</span><span class="start-field-value">${s.height_cm || '–'}</span></div>
+                                <div class="start-field"><span class="start-field-label">Önskat startdatum</span><span class="start-field-value">${s.desired_start_date || '–'}</span></div>
+                                <div class="start-field"><span class="start-field-label">Pass/vecka</span><span class="start-field-value">${esc(s.sessions_per_week || '–')}</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Fokusområden -->
+                        <div class="start-section">
+                            <div class="start-section-title">Fokusområden</div>
+                            <div class="start-tags">${focusTags || '<span class="start-field-value empty">Inga angivna</span>'}</div>
+                        </div>
+
+                        <!-- Mål & bakgrund -->
+                        <div class="start-section">
+                            <div class="start-section-title">Mål & Beskrivning</div>
+                            <div class="start-text-block">${esc(s.goal_description || 'Inget mål angivet')}</div>
+                        </div>
+
+                        <!-- Skador -->
+                        ${s.injuries ? `<div class="start-section">
+                            <div class="start-section-title">Skador / Begränsningar</div>
+                            <div class="start-text-block">${esc(s.injuries)}</div>
+                        </div>` : ''}
+
+                        <!-- Erfarenhet -->
+                        <div class="start-section">
+                            <div class="start-section-title">Erfarenhet & Historik</div>
+                            <div class="start-fields">
+                                <div class="start-field"><span class="start-field-label">Träningserfarenhet</span><span class="start-field-value">${esc(s.training_experience || '–')}</span></div>
+                                <div class="start-field"><span class="start-field-label">Aktivitet senaste 6 mån</span><span class="start-field-value">${esc(s.activity_last_6_months || '–')}</span></div>
+                                <div class="start-field"><span class="start-field-label">Kost senaste 6 mån</span><span class="start-field-value">${esc(s.diet_last_6_months || '–')}</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Träningsformer -->
+                        <div class="start-section">
+                            <div class="start-section-title">Träning</div>
+                            <div style="margin-bottom:8px"><span class="start-field-label">Träningsformer</span><div class="start-tags">${trainingFormTags || '<span class="start-field-value empty">–</span>'}</div></div>
+                            ${s.training_forms_other ? `<div style="margin-bottom:8px"><span class="start-field-label">Annat</span><span class="start-field-value"> ${esc(s.training_forms_other)}</span></div>` : ''}
+                            <div style="margin-bottom:8px"><span class="start-field-label">Träningsplatser</span><div class="start-tags">${placeTags || '<span class="start-field-value empty">–</span>'}</div></div>
+                            ${s.training_places_other ? `<div><span class="start-field-label">Annat</span><span class="start-field-value"> ${esc(s.training_places_other)}</span></div>` : ''}
+                        </div>
+
+                        <!-- Kroppsmått -->
+                        <div class="start-section">
+                            <div class="start-section-title">Kroppsmått (cm)</div>
+                            ${measHtml}
+                        </div>
+
+                        <!-- Status log -->
+                        <div id="start-log-${s.id}" class="start-plan-preview" style="display:none"></div>
+
+                        <!-- AI Plan preview -->
+                        ${planPreview}
+
+                        <!-- Actions -->
+                        <div class="start-actions-bar">
+                            ${actionBtns}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleStartDetail(id) {
+            const card = document.getElementById(`start-${id}`);
+            if (card) card.classList.toggle('expanded');
+        }
+
+        function startLog(id, msg) {
+            const el = document.getElementById(`start-log-${id}`);
+            if (el) {
+                el.style.display = 'block';
+                el.textContent = (el.textContent ? el.textContent + '\n' : '') + msg;
+                el.scrollTop = el.scrollHeight;
+            }
+        }
+
+        // Step 1: Create client account in Trainerize
+        async function createStartAccount(id) {
+            const s = allStarts.find(x => x.id === id);
+            if (!s) return;
+
+            // First check if client already exists
+            const btn = document.getElementById(`btn-account-${id}`);
+            setLoading(btn, true);
+            startLog(id, '→ Söker efter befintlig klient i Trainerize...');
+
+            try {
+                const searchRes = await apiGet(`/api/trainerize/clients/search?q=${encodeURIComponent(s.email)}`);
+                const users = searchRes?.data?.result || searchRes?.data?.users || [];
+
+                if (users.length > 0) {
+                    // Client already exists
+                    const client = users[0];
+                    startClientIds[id] = { clientId: client.id, trainerId: client.trainerID || 4452827 };
+                    startLog(id, `→ Klient finns redan: ${client.firstName || ''} ${client.lastName || ''} (ID: ${client.id})`);
+                } else {
+                    // Create new client
+                    startLog(id, '→ Skapar nytt konto...');
+                    const createRes = await apiPost('/api/trainerize/client/create', {
+                        email: s.email,
+                        firstName: s.first_name,
+                        lastName: s.last_name || '',
+                        height: s.height_cm,
+                    });
+
+                    if (!createRes.ok) {
+                        startLog(id, 'FEL: Kunde inte skapa konto — ' + (createRes.error || 'okänt fel'));
+                        return;
+                    }
+
+                    const newId = createRes.data?.userID || createRes.data?.user?.id || createRes.data?.id;
+                    if (!newId) {
+                        startLog(id, 'FEL: Kontot skapades men inget ID returnerades. Svar: ' + JSON.stringify(createRes.data));
+                        return;
+                    }
+
+                    startClientIds[id] = { clientId: newId, trainerId: 4452827 };
+                    startLog(id, `→ Konto skapat. Klient-ID: ${newId}`);
+                    if (createRes.data?.setupLink) {
+                        startLog(id, `→ Setup-länk: ${createRes.data.setupLink}`);
+                    }
+                }
+
+                // Add trainer note with intake summary
+                const clientInfo = startClientIds[id];
+                startLog(id, '→ Lägger till tränarnote med startdata...');
+                const noteLines = [
+                    `[Startformulär] ${s.first_name} ${s.last_name || ''}`,
+                    `Mål: ${s.goal_description || '–'}`,
+                    `Fokus: ${(s.focus_areas || []).join(', ') || '–'}`,
+                    `Erfarenhet: ${s.training_experience || '–'}`,
+                    `Aktivitet 6 mån: ${s.activity_last_6_months || '–'}`,
+                    `Kost 6 mån: ${s.diet_last_6_months || '–'}`,
+                    `Skador: ${s.injuries || 'Inga'}`,
+                    `Träningsformer: ${(s.training_forms || []).join(', ') || '–'}`,
+                    `Platser: ${(s.training_places || []).join(', ') || '–'}`,
+                    `Pass/vecka: ${s.sessions_per_week || '–'}`,
+                    `Ålder: ${s.age || '–'}, Vikt: ${s.weight_kg || '–'} kg, Längd: ${s.height_cm || '–'} cm`,
+                ];
+                try {
+                    await apiPost('/api/trainerize/note/add', {
+                        userID: clientInfo.clientId,
+                        content: noteLines.join('\n'),
+                        type: 'general',
+                    });
+                    startLog(id, '→ Tränarnote tillagd.');
+                } catch (noteErr) {
+                    startLog(id, 'Varning: Kunde inte lägga till note — ' + noteErr.message);
+                }
+
+                renderStarts();
+                // Re-expand
+                const card = document.getElementById(`start-${id}`);
+                if (card) card.classList.add('expanded');
+            } catch (err) {
+                startLog(id, 'FEL: ' + err.message);
+            } finally {
+                setLoading(btn, false);
+            }
+        }
+
+        // Step 2: Generate AI plan
+        async function generateStartPlan(id) {
+            const s = allStarts.find(x => x.id === id);
+            if (!s) return;
+            const btn = document.getElementById(`btn-gen-${id}`);
+            setLoading(btn, true);
+            startLog(id, '→ Genererar AI-plan...');
+            try {
+                const intake = {
+                    firstName: s.first_name,
+                    lastName: s.last_name,
+                    age: s.age,
+                    weight: s.weight_kg,
+                    height: s.height_cm,
+                    goals: s.goal_description || (s.focus_areas || []).join(', '),
+                    injuries: s.injuries || '',
+                    experience: s.training_experience || '',
+                    daysPerWeek: parseInt(s.sessions_per_week) || 3,
+                    equipment: (s.training_places || []).join(', '),
+                    preferences: [s.activity_last_6_months, s.diet_last_6_months].filter(Boolean).join('. '),
+                    additionalInfo: [
+                        s.training_forms_other ? `Annan träningsform: ${s.training_forms_other}` : '',
+                        s.training_places_other ? `Annan plats: ${s.training_places_other}` : '',
+                        s.focus_areas?.length ? `Fokusområden: ${s.focus_areas.join(', ')}` : '',
+                    ].filter(Boolean).join('. '),
+                };
+                const res = await apiPost('/api/ai/onboard', intake);
+                if (res.ok) {
+                    startPlans[id] = res.data;
+                    startLog(id, '→ AI-plan genererad. Se förhandsgranskning nedan.');
+                    renderStarts();
+                    const card = document.getElementById(`start-${id}`);
+                    if (card) card.classList.add('expanded');
+                } else {
+                    startLog(id, 'FEL: AI-plan misslyckades — ' + (res.error || 'Okänt fel'));
+                }
+            } catch (err) {
+                startLog(id, 'FEL: ' + err.message);
+            } finally {
+                setLoading(btn, false);
+            }
+        }
+
+        // Step 3: Execute plan in Trainerize
+        async function executeStartPlan(id) {
+            const plan = startPlans[id];
+            if (!plan) return alert('Ingen plan genererad ännu.');
+
+            const s = allStarts.find(x => x.id === id);
+            let clientInfo = startClientIds[id];
+
+            // If no client ID cached, try to find it
+            if (!clientInfo) {
+                startLog(id, '→ Söker klient i Trainerize...');
+                try {
+                    const searchRes = await apiGet(`/api/trainerize/clients/search?q=${encodeURIComponent(s.email)}`);
+                    const users = searchRes?.data?.result || searchRes?.data?.users || [];
+                    if (users.length > 0) {
+                        clientInfo = { clientId: users[0].id, trainerId: users[0].trainerID || 4452827 };
+                        startClientIds[id] = clientInfo;
+                        startLog(id, `→ Klient hittad: ID ${clientInfo.clientId}`);
+                    } else {
+                        startLog(id, 'FEL: Klienten hittades inte i Trainerize. Skapa kontot först (steg 1).');
+                        return;
+                    }
+                } catch (err) {
+                    startLog(id, 'FEL: ' + err.message);
+                    return;
+                }
+            }
+
+            if (!confirm(`Vill du skapa träningsupplägget i Trainerize för klient-ID ${clientInfo.clientId}?`)) return;
+
+            startLog(id, '→ Kör plan i Trainerize...');
+            try {
+                const execRes = await apiPost('/api/ai/execute-onboarding', {
+                    clientId: clientInfo.clientId,
+                    trainerId: clientInfo.trainerId,
+                    onboardingResult: plan,
+                });
+                if (execRes.ok) {
+                    startLog(id, '→ Klart! Träningsupplägg skapat i Trainerize.');
+                    await markStartDone(id);
+                } else {
+                    startLog(id, 'FEL: ' + (execRes.error || JSON.stringify(execRes)));
+                }
+            } catch (err) {
+                startLog(id, 'FEL: ' + err.message);
+            }
+        }
+
+        async function markStartDone(id) {
+            try {
+                await apiPost(`/api/starts/${id}/done`, {});
+                const s = allStarts.find(x => x.id === id);
+                if (s) { s.is_done = true; s.done_at = new Date().toISOString(); }
+                updateStartsStats();
+                renderStarts();
+            } catch (err) {
+                alert('Kunde inte markera som hanterad: ' + err.message);
             }
         }
     </script>

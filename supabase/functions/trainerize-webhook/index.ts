@@ -178,62 +178,170 @@ async function handleNewMessage(
   let body = data.body as string;
 
   // ── Enrich via getMessage API ──
-  // Webhook payload might not have full message text, so fetch it
   if (messageId) {
     try {
       const fullMessage = await tzApi("/message/get", { messageID: messageId });
       if (fullMessage?.result) {
         const msg = fullMessage.result;
         body = msg.body || body;
-        console.log(`📩 Enriched message ${messageId}: "${(body || "").slice(0, 200)}"`);
+        console.log(`Enriched message ${messageId}: "${(body || "").slice(0, 200)}"`);
       }
     } catch (err) {
       console.warn("Failed to enrich message via API:", err);
     }
   }
 
-  console.log(`💬 New message from ${senderId} in thread ${threadId}: "${(body || "").slice(0, 100)}"`);
+  // ── Look up client name ──
+  let clientName = "";
+  if (senderId) {
+    try {
+      const profileRes = await tzApi("/user/getProfile", { userIDs: [senderId] });
+      const profiles = profileRes?.result || [];
+      if (profiles.length > 0) {
+        const p = profiles[0];
+        clientName = [p.firstName, p.lastName].filter(Boolean).join(" ");
+      }
+    } catch (err) {
+      console.warn("Could not look up client name:", err);
+    }
+  }
 
-  // Store in messages table for conversation history
-  const { error } = await supabase.from("client_messages").insert({
+  console.log(`New message from ${clientName || senderId} in thread ${threadId}: "${(body || "").slice(0, 100)}"`);
+
+  // ── Store in messages table ──
+  const { data: insertedMsg, error } = await supabase.from("client_messages").insert({
     message_id: messageId,
     thread_id: threadId,
     sender_id: senderId,
     body: body,
     direction: "incoming",
     sent_at: data.sentTime || new Date().toISOString(),
-  });
+    client_name: clientName || null,
+  }).select().single();
 
   if (error) {
     console.error("Failed to store message:", error);
+    return;
   }
 
-  // Fetch recent conversation history from our DB (for future AI use)
+  // ── Fetch thread history for context ──
   const { data: history } = await supabase
     .from("client_messages")
     .select("body, direction, sent_at")
     .eq("thread_id", threadId)
-    .order("sent_at", { ascending: false })
+    .order("sent_at", { ascending: true })
     .limit(10);
 
-  console.log(`📚 Thread ${threadId} history: ${history?.length || 0} messages`);
+  const threadContext = (history || [])
+    .map((m: any) => `[${m.direction === "incoming" ? "Klient" : "Tränare"}] ${m.body}`)
+    .join("\n");
 
-  // TODO: Generate AI response when ready
-  // const aiResponse = await generateAIResponse(body, context);
-  // await tzApi("/message/reply", {
-  //   threadID: threadId,
-  //   userID: TZ_TRAINER_ID,
-  //   body: aiResponse,
-  //   type: "text",
-  // });
-  // await supabase.from("client_messages").insert({
-  //   message_id: null,
-  //   thread_id: threadId,
-  //   sender_id: TZ_TRAINER_ID,
-  //   body: aiResponse,
-  //   direction: "outgoing",
-  //   sent_at: new Date().toISOString(),
-  // });
+  console.log(`Thread ${threadId} history: ${history?.length || 0} messages`);
+
+  // ── Generate AI draft reply via OpenAI REST API ──
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+  if (!OPENAI_API_KEY) {
+    console.warn("OPENAI_API_KEY not set — skipping auto-draft");
+    return;
+  }
+
+  try {
+    const systemPrompt = `Du är en erfaren personlig tränare och coach som arbetar på Private Training Online (PTO). Du svarar på meddelanden från klienter som tränar med dig via appen Trainerize.
+
+## Om PTO
+Private Training Online erbjuder personlig träning på distans med hög kvalitet. Våra klienter får skräddarsydda träningsprogram, kostupplägg och kontinuerlig coachning. Relationen mellan tränare och klient är central — vi är mer än bara en app, vi är ett stöd i hela livsstilsförändringen.
+
+## Din röst och ton
+- Personlig — Skriv som om du pratar med klienten face-to-face. Använd deras förnamn om det finns tillgängligt.
+- Vänlig men professionell — Aldrig stelt eller robotiskt, aldrig heller för kompist. Tänk: "en kompetent vän som bryr sig".
+- Motivation utan överdrift — Uppmuntra genuint, men undvik tomma fraser. Var specifik i ditt beröm.
+- Kort och slagkraftigt — Svara lagom långt: tillräckligt för att vara hjälpsamt, kort nog att respektera deras tid.
+- Max 1 emoji per meddelande — Bara om det tillför något, aldrig påtvingat.
+- Skriv alltid på svenska — Naturlig, modern svenska.
+
+## Hur du svarar beroende på meddelandetyp
+
+### Frågor om träning eller kost
+- Ge ett tydligt, konkret svar
+- Förklara kort "varför" — klienter som förstår följer bättre
+
+### Klienten rapporterar problem (smärta, trötthet, svårigheter)
+- Visa empati först
+- Ge ett konkret förslag (byt övning, minska volym, ta extra vilodag)
+
+### Klienten delar framsteg
+- Uppmuntra genuint och specifikt
+- Lyft vad som bidrog till framgången
+
+### Logistiska frågor (schema, bokning, programändringar)
+- Rak och tydlig information
+- Bekräfta att du fixar om det behöver göras
+
+### Allmänt prat / socialt
+- Var vänlig och personlig, men håll det kort
+
+## JSON-schema för svaret
+Svara ALLTID med giltig JSON, inget annat:
+{
+  "reply": "Ditt formulerade svar till klienten — redo att skicka",
+  "category": "fråga | problem | framsteg | logistik | allmänt",
+  "suggestedActions": ["Eventuella åtgärder i klartext"],
+  "tone": "uppmuntrande | empatisk | informativ | casual"
+}
+
+Svara ENBART med giltig JSON, inget annat.`;
+
+    const userPrompt = [
+      `Klient: ${clientName || `Klient #${senderId}`}`,
+      `Meddelande från klient: "${body}"`,
+      threadContext ? `Konversationshistorik:\n${threadContext}` : "",
+    ].filter(Boolean).join("\n");
+
+    const openaiModel = "gpt-5.4-2026-03-05";
+    const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: openaiModel,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        reasoning_effort: "medium",
+      }),
+    });
+
+    if (!openaiRes.ok) {
+      const errText = await openaiRes.text();
+      console.error(`OpenAI API error ${openaiRes.status}: ${errText.slice(0, 300)}`);
+      return;
+    }
+
+    const openaiData = await openaiRes.json();
+    const aiText = openaiData?.choices?.[0]?.message?.content || "";
+
+    let draftReply = "";
+    try {
+      const parsed = JSON.parse(aiText);
+      draftReply = parsed.reply || aiText;
+    } catch {
+      draftReply = aiText;
+    }
+
+    if (draftReply && insertedMsg?.id) {
+      await supabase
+        .from("client_messages")
+        .update({ draft_reply: draftReply })
+        .eq("id", insertedMsg.id);
+      console.log(`AI draft saved for message ${insertedMsg.id}: "${draftReply.slice(0, 100)}"`);
+    }
+  } catch (err) {
+    console.error("Failed to generate AI draft:", err);
+  }
 }
 
 async function handleWorkoutCompleted(

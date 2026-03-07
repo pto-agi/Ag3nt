@@ -13,6 +13,7 @@ import { searchExerciseByName } from '../integrations/exercise-cache.js';
 import {
     addTrainingPlan,
     addWorkoutDef,
+    getWorkoutDef,
     scheduleDailyWorkout,
     addTrainerNote,
 } from '../integrations/trainerize-api.js';
@@ -202,6 +203,21 @@ export async function executeOnboarding(input: ExecuteOnboardingInput): Promise<
                 }
             });
 
+            // Fetch full workout definitions (required by dailyWorkout/set API)
+            log.info({ ids: workoutDefIds }, 'Fetching full workout defs for scheduling...');
+            let fullWorkoutDefs: Record<string, any> = {};
+            try {
+                const wdRes = await getWorkoutDef(workoutDefIds) as any;
+                const wdData = wdRes?.data || wdRes;
+                const defList = wdData?.result || wdData?.workoutDefs || [];
+                for (const wd of (Array.isArray(defList) ? defList : [])) {
+                    if (wd?.id) fullWorkoutDefs[wd.id] = wd;
+                }
+                log.info({ fetched: Object.keys(fullWorkoutDefs).length }, 'Fetched workout defs');
+            } catch (err) {
+                log.warn({ err: err instanceof Error ? err.message : String(err) }, 'Could not fetch workout defs — will try minimal format');
+            }
+
             const dailyWorkouts: Array<Record<string, unknown>> = [];
 
             for (const [dayName, workoutName] of Object.entries(plan.weeklySchedule)) {
@@ -218,15 +234,37 @@ export async function executeOnboarding(input: ExecuteOnboardingInput): Promise<
                 const dayOffset = dayNum === 0 ? 6 : dayNum - 1; // Mon=0 offset
                 scheduleDate.setDate(startDate.getDate() + dayOffset);
 
-                dailyWorkouts.push({
-                    date: scheduleDate.toISOString().split('T')[0],
-                    clientID: clientId,
-                    workoutDefID: defId,
-                });
+                const dateStr = scheduleDate.toISOString().split('T')[0];
+
+                // Build the full daily workout object
+                const fullDef = fullWorkoutDefs[defId];
+                if (fullDef) {
+                    // Full format — pass the complete workoutDef
+                    dailyWorkouts.push({
+                        date: dateStr,
+                        clientID: clientId,
+                        workoutDef: {
+                            ...fullDef,
+                            id: 0,  // Set to 0 to create new instance
+                        },
+                    });
+                } else {
+                    // Minimal fallback — try with just the ID reference
+                    dailyWorkouts.push({
+                        date: dateStr,
+                        clientID: clientId,
+                        workoutDefID: defId,
+                        workoutDef: {
+                            id: defId,
+                        },
+                    });
+                }
             }
 
             if (dailyWorkouts.length > 0) {
-                await scheduleDailyWorkout({ userID: trainerId, dailyWorkouts });
+                log.info({ count: dailyWorkouts.length, startDate: startDate.toISOString().split('T')[0] }, 'Scheduling workouts...');
+                const schedResult = await scheduleDailyWorkout({ userID: trainerId, dailyWorkouts }) as any;
+                log.info({ result: JSON.stringify(schedResult).slice(0, 500) }, 'Schedule result');
                 steps.push({
                     step: 'Schemalägg vecka',
                     status: 'ok',

@@ -4,6 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js';
 import { logger } from './shared/logger.js';
 
 // ── Trainerize API ──
@@ -23,6 +24,11 @@ app.use(express.json());
 
 // Serve dashboard static files
 app.use(express.static(path.join(__dirname, '..', 'dashboard')));
+
+// ── Supabase client ──
+const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ═══════════════════════════════════════════════════════
 // ── Trainerize API Proxy (Dashboard → API directly) ──
@@ -250,7 +256,46 @@ app.post('/api/trainerize/program/assign', async (req, res) => {
     }
 });
 
-// Generic API call (for testing any endpoint)
+// Create a new client account in Trainerize
+app.post('/api/trainerize/client/create', async (req, res) => {
+    try {
+        const { email, firstName, lastName, phone, height, sex, birthDate, sendMail } = req.body;
+        if (!email || !firstName) {
+            return res.status(400).json({ ok: false, error: 'email and firstName are required' });
+        }
+        logger.info({ email, firstName, step: 'create-client' }, 'Creating new Trainerize client');
+
+        const result = await tz.addUser({
+            user: {
+                email,
+                firstname: firstName,
+                lastname: lastName || '',
+                phone: phone || undefined,
+                sex: sex || undefined,
+                birthDate: birthDate || undefined,
+                height: height ? parseFloat(height) : undefined,
+            },
+            sendMail: sendMail !== false, // default true
+            isSetup: true,
+            unitHeight: 'cm',
+        });
+
+        // Try to get setup link for the new user
+        let setupLink = null;
+        const newUserId = result?.data?.userID || result?.data?.user?.id || result?.data?.id;
+        if (newUserId) {
+            try {
+                const linkRes = await tz.getSetupLink(newUserId);
+                setupLink = linkRes?.data?.link || linkRes?.data?.url || null;
+            } catch { }
+        }
+
+        res.json({ ok: result.ok, data: { ...result.data, setupLink }, error: result.error });
+    } catch (err: any) {
+        logger.error({ error: err.message, step: 'create-client' }, 'Failed to create client');
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
 app.post('/api/trainerize/raw', async (req, res) => {
     try {
         const { endpoint, body } = req.body;
@@ -833,6 +878,196 @@ app.post('/api/cases/:id/reject', (req, res) => {
     }
     caseRecord.status = 'rejected';
     res.json({ ok: true, data: caseRecord });
+});
+
+// ═══════════════════════════════════════════════
+// ── Starts (Startformulär from Supabase) ──
+// ═══════════════════════════════════════════════
+
+// List all start form submissions (uses SECURITY DEFINER function to bypass RLS)
+app.get('/api/starts', async (req, res) => {
+    try {
+        const { data, error } = await supabase.rpc('get_all_startformular');
+        if (error) throw new Error(error.message);
+
+        // Client-side filtering by done status
+        let result = data || [];
+        const showDone = req.query.done;
+        if (showDone === 'true') result = result.filter((r: any) => r.is_done === true);
+        else if (showDone === 'false') result = result.filter((r: any) => r.is_done === false);
+
+        res.json({ ok: true, data: result });
+    } catch (err: any) {
+        logger.error({ error: err.message, step: 'starts' }, 'Failed to load starts');
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// Mark a start form submission as done (uses SECURITY DEFINER function to bypass RLS)
+app.post('/api/starts/:id/done', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { data, error } = await supabase.rpc('mark_startformular_done', { start_id: id });
+        if (error) throw new Error(error.message);
+        res.json({ ok: true, data: Array.isArray(data) ? data[0] : data });
+    } catch (err: any) {
+        logger.error({ error: err.message, step: 'starts' }, 'Failed to mark start as done');
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// ═══════════════════════════════════════════════
+// ── Inbox (Client Messages from Webhooks) ──
+// ═══════════════════════════════════════════════
+
+const TZ_TRAINER_ID = 4452827; // PTO trainer account
+
+// List inbox messages
+app.get('/api/inbox', async (req, res) => {
+    try {
+        const { data, error } = await supabase.rpc('get_inbox_messages');
+        if (error) throw new Error(error.message);
+
+        let result = data || [];
+        const showHandled = req.query.handled;
+        if (showHandled === 'true') result = result.filter((r: any) => r.is_handled === true);
+        else if (showHandled === 'false') result = result.filter((r: any) => r.is_handled === false);
+
+        res.json({ ok: true, data: result });
+    } catch (err: any) {
+        logger.error({ error: err.message, step: 'inbox' }, 'Failed to load inbox');
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// Generate AI draft reply for a message
+app.post('/api/inbox/:id/draft', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Get the message
+        const { data: messages, error } = await supabase.rpc('get_inbox_messages');
+        if (error) throw new Error(error.message);
+        const msg = (messages || []).find((m: any) => m.id === id);
+        if (!msg) return res.status(404).json({ ok: false, error: 'Message not found' });
+
+        // Get thread history for context
+        let threadHistory: any[] = [];
+        if (msg.thread_id) {
+            const { data: threadMsgs } = await supabase.rpc('get_thread_messages', { t_id: msg.thread_id });
+            threadHistory = threadMsgs || [];
+        }
+
+        // Try to get client context from Trainerize (trainer notes)
+        let clientGoal = '';
+        let recentNotes = '';
+        if (msg.sender_id) {
+            try {
+                const notesRes = await tz.getTrainerNotes(msg.sender_id, { count: 5 });
+                if (notesRes.ok && notesRes.data?.result) {
+                    const notes = notesRes.data.result;
+                    recentNotes = notes.map((n: any) => n.content).join('\n').slice(0, 500);
+                }
+            } catch { /* ignore — notes are optional context */ }
+        }
+
+        // Build thread context string
+        const threadContext = threadHistory
+            .slice(-10)
+            .map((m: any) => `[${m.direction === 'incoming' ? 'Klient' : 'Tränare'}] ${m.body}`)
+            .join('\n');
+
+        // Call existing AI compose function
+        const aiResult = await aiTrainer.composeMessageReply({
+            clientName: msg.client_name || `Klient #${msg.sender_id}`,
+            message: msg.body || '',
+            clientGoal: clientGoal || undefined,
+            recentActivity: recentNotes || undefined,
+            currentProgram: threadContext ? `Konversationshistorik:\n${threadContext}` : undefined,
+        });
+
+        const draftText = aiResult.reply || JSON.stringify(aiResult);
+
+        // Save the draft to DB
+        await supabase.rpc('update_inbox_message', {
+            msg_id: id,
+            new_draft: draftText,
+        });
+
+        res.json({ ok: true, data: { draft: draftText, ai: aiResult } });
+    } catch (err: any) {
+        logger.error({ error: err.message, step: 'inbox-draft' }, 'Failed to generate draft');
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// Send reply via Trainerize and mark as handled
+app.post('/api/inbox/:id/send', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { body: replyBody } = req.body;
+        if (!replyBody) return res.status(400).json({ ok: false, error: 'body is required' });
+
+        // Get the message
+        const { data: messages, error } = await supabase.rpc('get_inbox_messages');
+        if (error) throw new Error(error.message);
+        const msg = (messages || []).find((m: any) => m.id === id);
+        if (!msg) return res.status(404).json({ ok: false, error: 'Message not found' });
+
+        if (!msg.thread_id) {
+            return res.status(400).json({ ok: false, error: 'No thread_id — cannot reply' });
+        }
+
+        // Send reply via Trainerize API
+        const replyResult = await tz.replyToMessage({
+            userID: TZ_TRAINER_ID,
+            threadID: msg.thread_id,
+            body: replyBody,
+            type: 'text',
+        });
+
+        if (!replyResult.ok) {
+            throw new Error(`Trainerize reply failed: ${JSON.stringify(replyResult)}`);
+        }
+
+        // Mark original message as handled
+        await supabase.rpc('update_inbox_message', {
+            msg_id: id,
+            new_is_handled: true,
+            new_handled_at: new Date().toISOString(),
+            new_draft: replyBody,
+        });
+
+        // Store outgoing message in DB
+        await supabase.rpc('insert_outgoing_message', {
+            p_thread_id: msg.thread_id,
+            p_sender_id: TZ_TRAINER_ID,
+            p_body: replyBody,
+            p_client_name: msg.client_name,
+        });
+
+        logger.info({ msgId: id, threadId: msg.thread_id, step: 'inbox-send' }, 'Reply sent');
+        res.json({ ok: true, data: replyResult.data });
+    } catch (err: any) {
+        logger.error({ error: err.message, step: 'inbox-send' }, 'Failed to send reply');
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// Dismiss a message (mark handled without replying)
+app.post('/api/inbox/:id/dismiss', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await supabase.rpc('update_inbox_message', {
+            msg_id: id,
+            new_is_handled: true,
+            new_handled_at: new Date().toISOString(),
+        });
+        res.json({ ok: true });
+    } catch (err: any) {
+        logger.error({ error: err.message, step: 'inbox-dismiss' }, 'Failed to dismiss');
+        res.status(500).json({ ok: false, error: err.message });
+    }
 });
 
 // Fallback: serve dashboard

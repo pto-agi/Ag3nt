@@ -191,10 +191,10 @@ export async function composeMessageReply(context: {
         context.recentActivity ? `Senaste aktivitet: ${context.recentActivity}` : '',
     ].filter(Boolean).join('\n');
 
-    return askGeminiJSON<MessageReplyResult>(
+    return askOpenAIJSON<MessageReplyResult>(
         MESSAGE_REPLY_SYSTEM_PROMPT,
         userPrompt,
-        { temperature: 0.7 },
+        { reasoningEffort: 'medium' },
     );
 }
 
