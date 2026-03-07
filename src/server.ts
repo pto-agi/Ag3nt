@@ -1154,6 +1154,39 @@ app.post('/api/followups/:id/regenerate', async (req, res) => {
 // Background AI generation helper
 async function generateFollowUpAI(followup: any) {
     try {
+        // ── Step 1: Look up client in Trainerize by email ──
+        let trainerizeClientId: number | null = null;
+        let trainerNotes = '';
+
+        if (followup.email) {
+            try {
+                const searchResult = await tz.findUser(followup.email, { view: 'allClient', verbose: true });
+                if (searchResult.ok && searchResult.data?.result?.length) {
+                    trainerizeClientId = searchResult.data.result[0].userID || searchResult.data.result[0].id;
+                    logger.info({ clientId: trainerizeClientId, email: followup.email, step: 'followups' }, 'Found Trainerize client');
+                }
+            } catch (err: any) {
+                logger.warn({ error: err.message, email: followup.email, step: 'followups' }, 'Could not look up client in Trainerize');
+            }
+        }
+
+        // ── Step 2: Fetch existing trainer notes ──
+        if (trainerizeClientId) {
+            try {
+                const notesResult = await tz.getTrainerNotes(trainerizeClientId, { count: 10, filterType: 'general' });
+                if (notesResult.ok && notesResult.data?.result?.length) {
+                    const noteTexts = notesResult.data.result
+                        .map((n: any) => `[${n.date || 'okänt datum'}] ${n.content || ''}`)
+                        .join('\n---\n');
+                    trainerNotes = noteTexts;
+                    logger.info({ count: notesResult.data.result.length, step: 'followups' }, 'Loaded trainer notes for context');
+                }
+            } catch (err: any) {
+                logger.warn({ error: err.message, step: 'followups' }, 'Could not fetch trainer notes');
+            }
+        }
+
+        // ── Step 3: Generate AI response with full context ──
         const response = await aiTrainer.generateFollowUpResponse({
             firstName: followup.first_name,
             lastName: followup.last_name,
@@ -1166,6 +1199,7 @@ async function generateFollowUpAI(followup: any) {
             otherActivity: followup.other_activity,
             homeEquipment: followup.home_equipment,
             refillProducts: followup.refill_products,
+            trainerNotes: trainerNotes || undefined,
         });
 
         await supabase.rpc('update_uppfoljning_ai_response', {
@@ -1174,6 +1208,24 @@ async function generateFollowUpAI(followup: any) {
             response_data: response,
             error_msg: null,
         });
+
+        // ── Step 4: Write summary note back to Trainerize ──
+        if (trainerizeClientId) {
+            try {
+                const noteContent = `[AI Uppföljningsanalys ${new Date().toISOString().slice(0, 10)}]\n` +
+                    `Status: ${response.overallStatus === 'on_track' ? 'På rätt spår' : response.overallStatus === 'needs_adjustment' ? 'Behöver justering' : 'Behöver uppmärksamhet'}\n` +
+                    `Bedömning: ${response.progressAssessment}\n` +
+                    `Rekommendationer: ${(response.recommendations || []).map((r: any) => r.description).join('; ')}`;
+                await tz.addTrainerNote({
+                    userID: trainerizeClientId,
+                    content: noteContent,
+                    type: 'general',
+                });
+                logger.info({ clientId: trainerizeClientId, step: 'followups' }, 'Wrote follow-up summary to trainer notes');
+            } catch (err: any) {
+                logger.warn({ error: err.message, step: 'followups' }, 'Could not write trainer note');
+            }
+        }
 
         logger.info({ id: followup.id, client: followup.first_name, step: 'followups' }, 'AI follow-up response saved');
     } catch (err: any) {
