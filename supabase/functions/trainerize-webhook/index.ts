@@ -129,7 +129,7 @@ Deno.serve(async (req: Request) => {
 
     // ── Handle specific event types ──
 
-    if (eventType === "message.new" || eventType === "message.created") {
+    if (eventType === "message.new" || eventType === "message.created" || eventType === "msg.received") {
       await handleNewMessage(supabase, payload);
     }
 

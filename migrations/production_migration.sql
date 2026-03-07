@@ -143,7 +143,7 @@ BEGIN
   -- For local dev: 'http://localhost:3847/api/starts/webhook'
   webhook_url := coalesce(
     current_setting('app.webhook_url', true),
-    'https://antigravity-agent.onrender.com/api/starts/webhook'
+    'https://aimade.se/api/starts/webhook'
   );
   webhook_secret := coalesce(
     current_setting('app.webhook_secret', true),
