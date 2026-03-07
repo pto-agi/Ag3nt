@@ -1088,6 +1088,126 @@ app.post('/api/starts/:id/done', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════
+// ── Uppföljningar (Follow-ups from Supabase) ──
+// ═══════════════════════════════════════════════
+
+// List all follow-ups (uses SECURITY DEFINER function)
+app.get('/api/followups', async (req, res) => {
+    try {
+        const { data, error } = await supabase.rpc('get_all_uppfoljningar');
+        if (error) throw new Error(error.message);
+
+        let result = data || [];
+        const showDone = req.query.done;
+        if (showDone === 'true') result = result.filter((r: any) => r.is_done === true);
+        else if (showDone === 'false') result = result.filter((r: any) => r.is_done === false);
+
+        res.json({ ok: true, data: result });
+    } catch (err: any) {
+        logger.error({ error: err.message, step: 'followups' }, 'Failed to load follow-ups');
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// Mark a follow-up as done
+app.post('/api/followups/:id/done', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { data, error } = await supabase.rpc('mark_uppfoljning_done', { followup_id: id });
+        if (error) throw new Error(error.message);
+        res.json({ ok: true, data: Array.isArray(data) ? data[0] : data });
+    } catch (err: any) {
+        logger.error({ error: err.message, step: 'followups' }, 'Failed to mark follow-up as done');
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// Regenerate AI response for a follow-up
+app.post('/api/followups/:id/regenerate', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Get the follow-up data
+        const { data: allFollowups } = await supabase.rpc('get_all_uppfoljningar');
+        const followup = (allFollowups || []).find((f: any) => f.id === id);
+        if (!followup) return res.status(404).json({ ok: false, error: 'Follow-up not found' });
+
+        // Mark as generating
+        await supabase.rpc('update_uppfoljning_ai_response', {
+            followup_id: id,
+            new_status: 'generating',
+            response_data: null,
+            error_msg: null,
+        });
+
+        // Generate AI response in background
+        generateFollowUpAI(followup).catch(err => {
+            logger.error({ error: err.message, id, step: 'followups' }, 'AI follow-up generation failed');
+        });
+
+        res.json({ ok: true, message: 'AI response generation started' });
+    } catch (err: any) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// Background AI generation helper
+async function generateFollowUpAI(followup: any) {
+    try {
+        const response = await aiTrainer.generateFollowUpResponse({
+            firstName: followup.first_name,
+            lastName: followup.last_name,
+            email: followup.email,
+            summaryFeedback: followup.summary_feedback,
+            goal: followup.goal,
+            quickKeepPlan: followup.quick_keep_plan,
+            sessionsPerWeek: followup.sessions_per_week,
+            trainingPlaces: followup.training_places,
+            otherActivity: followup.other_activity,
+            homeEquipment: followup.home_equipment,
+            refillProducts: followup.refill_products,
+        });
+
+        await supabase.rpc('update_uppfoljning_ai_response', {
+            followup_id: followup.id,
+            new_status: 'done',
+            response_data: response,
+            error_msg: null,
+        });
+
+        logger.info({ id: followup.id, client: followup.first_name, step: 'followups' }, 'AI follow-up response saved');
+    } catch (err: any) {
+        await supabase.rpc('update_uppfoljning_ai_response', {
+            followup_id: followup.id,
+            new_status: 'failed',
+            response_data: null,
+            error_msg: err.message,
+        });
+        throw err;
+    }
+}
+
+// Auto-generate AI responses for pending follow-ups on startup
+setTimeout(async () => {
+    try {
+        const { data } = await supabase.rpc('get_all_uppfoljningar');
+        const pending = (data || []).filter((f: any) => !f.ai_response_status || f.ai_response_status === 'pending');
+        for (const followup of pending) {
+            logger.info({ id: followup.id, client: followup.first_name, step: 'followups' }, 'Auto-generating AI response');
+            await supabase.rpc('update_uppfoljning_ai_response', {
+                followup_id: followup.id,
+                new_status: 'generating',
+                response_data: null,
+                error_msg: null,
+            });
+            await generateFollowUpAI(followup);
+        }
+    } catch (err: any) {
+        logger.error({ error: err.message, step: 'followups' }, 'Failed to auto-generate follow-up AI responses');
+    }
+}, 5000);
+
+// ═══════════════════════════════════════════════
 // ── Inbox (Client Messages from Webhooks) ──
 // ═══════════════════════════════════════════════
 

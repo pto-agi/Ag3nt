@@ -10,6 +10,7 @@ import { ONBOARDING_SYSTEM_PROMPT, ONBOARDING_JSON_SCHEMA, EXERCISE_LIST_INSTRUC
 import { EXERCISE_REPLACEMENT_SYSTEM_PROMPT } from './prompts/exercise.js';
 import { MESSAGE_REPLY_SYSTEM_PROMPT } from './prompts/messages.js';
 import { CASE_ANALYZER_SYSTEM_PROMPT } from './prompts/arenden.js';
+import { FOLLOWUP_SYSTEM_PROMPT, FOLLOWUP_JSON_SCHEMA } from './prompts/followup.js';
 import { getAllExerciseNames } from '../integrations/exercise-cache.js';
 import { logger } from '../logger.js';
 
@@ -99,6 +100,37 @@ export interface CaseAnalysisResult {
     reasoning: string;
     actions: CaseAction[];
     clientMessage: string;
+}
+
+export interface FollowUpData {
+    firstName: string;
+    lastName?: string;
+    email?: string;
+    summaryFeedback: string;
+    goal?: string;
+    quickKeepPlan: boolean;
+    sessionsPerWeek?: number;
+    trainingPlaces?: string[];
+    otherActivity?: string[];
+    homeEquipment?: string[];
+    refillProducts?: string[];
+    trainerNotes?: string;
+}
+
+export interface FollowUpResponse {
+    progressAssessment: string;
+    recommendations: Array<{
+        category: 'keep' | 'change' | 'add' | 'remove';
+        description: string;
+        priority: 'high' | 'medium' | 'low';
+    }>;
+    clientMessage: string;
+    suggestedActions: Array<{
+        type: string;
+        description: string;
+        details: string;
+    }>;
+    overallStatus: 'on_track' | 'needs_adjustment' | 'needs_attention';
 }
 
 // ── Service Methods ──
@@ -239,6 +271,43 @@ export async function analyzeCaseRequest(caseText: string): Promise<CaseAnalysis
     return result;
 }
 
+/**
+ * Generate a follow-up response with AI assessment, recommendations, and client message.
+ */
+export async function generateFollowUpResponse(
+    followUp: FollowUpData,
+): Promise<FollowUpResponse> {
+    logger.info({ client: followUp.firstName, step: 'ai-trainer' }, 'Generating follow-up response');
+
+    const userPrompt = buildFollowUpPrompt(followUp);
+
+    // Load exercise library names for context
+    let exerciseContext = '';
+    try {
+        const exerciseNames = await getAllExerciseNames();
+        exerciseContext = '\n\nTillgängliga övningar i systemet (använd dessa namn exakt):\n' + exerciseNames.join(', ');
+    } catch {
+        logger.warn({ step: 'ai-trainer' }, 'Could not load exercise library for follow-up');
+    }
+
+    const systemPrompt = FOLLOWUP_SYSTEM_PROMPT + exerciseContext + '\n\nJSON-schema:\n' + FOLLOWUP_JSON_SCHEMA;
+
+    const result = await askGeminiJSON<FollowUpResponse>(
+        systemPrompt,
+        userPrompt,
+        { temperature: 0.5, maxOutputTokens: 4096 },
+    );
+
+    logger.info({
+        client: followUp.firstName,
+        status: result.overallStatus,
+        actions: result.suggestedActions?.length,
+        step: 'ai-trainer',
+    }, 'Follow-up response generated');
+
+    return result;
+}
+
 // ── Helpers ──
 
 function buildIntakePrompt(intake: ClientIntakeData): string {
@@ -262,6 +331,30 @@ function buildIntakePrompt(intake: ClientIntakeData): string {
 
     parts.push('');
     parts.push('Skapa ett komplett träningsupplägg baserat på ovanstående.');
+
+    return parts.join('\n');
+}
+
+function buildFollowUpPrompt(followUp: FollowUpData): string {
+    const parts = [
+        `## Uppföljning: ${followUp.firstName}${followUp.lastName ? ' ' + followUp.lastName : ''}`,
+        '',
+        `### Klientens feedback`,
+        followUp.summaryFeedback,
+        '',
+    ];
+
+    if (followUp.quickKeepPlan) parts.push('**Klienten vill BEHÅLLA nuvarande program.**\n');
+    if (followUp.goal) parts.push(`### Mål\n${followUp.goal}`);
+    if (followUp.sessionsPerWeek) parts.push(`### Träningstillfällen per vecka\n${followUp.sessionsPerWeek}`);
+    if (followUp.trainingPlaces?.length) parts.push(`### Träningsplatser\n${followUp.trainingPlaces.join(', ')}`);
+    if (followUp.otherActivity?.length) parts.push(`### Övrig aktivitet\n${followUp.otherActivity.join(', ')}`);
+    if (followUp.homeEquipment?.length) parts.push(`### Hemautrustning\n${followUp.homeEquipment.join(', ')}`);
+    if (followUp.refillProducts?.length) parts.push(`### Produkter att fylla på\n${followUp.refillProducts.join(', ')}`);
+    if (followUp.trainerNotes) parts.push(`### Tränaranteckningar (intern kontext)\n${followUp.trainerNotes}`);
+
+    parts.push('');
+    parts.push('Analysera uppföljningen och ge en professionell bedömning med rekommendationer och klientmeddelande.');
 
     return parts.join('\n');
 }
